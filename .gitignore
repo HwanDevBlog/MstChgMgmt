@@ -1,0 +1,17 @@
+.gradle/
+.gradle-user-home/
+build/
+.local/
+.env
+*.log
+.idea/
+.classpath
+.project
+.settings/
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+
+# Eclipse에서 생성한 컴파일 결과는 커밋하지 않는다.
+/bin/

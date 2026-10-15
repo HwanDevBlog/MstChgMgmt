@@ -1,0 +1,3 @@
+operation,equipment_code,name,category,daily_fee_krw,active
+CREATE,EQ-CAM001,Travel Camera,CAMERA,15000,true
+CREATE,EQ-MIC001,Studio Microphone,AUDIO,8000,true
