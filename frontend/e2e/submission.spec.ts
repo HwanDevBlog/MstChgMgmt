@@ -27,7 +27,7 @@ test('검토 묶음 충돌을 알리고 다시 확인한 내용만 고정 제출
  await page.getByRole('checkbox').check();const sent=page.waitForRequest(r=>r.url().endsWith('/submission')&&r.method()==='POST');
  await page.getByRole('button',{name:'승인 요청 제출',exact:true}).click();
  expect((await sent).postDataJSON()).toEqual({fileId:reviewed.fileId,validationId:reviewed.validationId,contentHash:reviewed.contentHash});
- const receipt=page.getByRole('region',{name:'고정 제출본'});await expect(receipt).toContainText('제출이 완료되었습니다');
+ const receipt=page.getByRole('region',{name:'고정 제출본'});await expect(receipt).toContainText('제출 시점에 고정된 값');
  const frozen=await(await page.request.get(base+'/submission')).json();expect(frozen.contentHash).toBe(reviewed.contentHash);expect(frozen.rows).toEqual(reviewed.rows);
  expect(await(await page.request.get(base+'/file')).body()).toEqual(Buffer.from(original));
  await expect(page.getByLabel('CSV 파일 선택')).toHaveCount(0);

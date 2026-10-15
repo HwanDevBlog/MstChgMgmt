@@ -1,13 +1,14 @@
-# 작업 인계 — 제출 단계 완료 (2026-10-15)
+# 작업 인계 — 승인·반영 단계 완료 (2026-10-15)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `f213d27`(CSV 업로드 및 검증과 변경 전후 비교 구현), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main 해시 일치를 확인했다. 제출 단계 변경은 미커밋·미push.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `a7e7c83`(불변 제출본 및 내용 해시와 변경 요청 제출 구현), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main 해시 일치를 확인했다. 승인·반영 단계 변경은 미커밋·미push.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
-- 4단계 완료: 임시 사유 수정·내용 해시·불변 제출본·검토 묶음 대조·SUBMITTED 제출. 승인·반영·반려·철회·새 리비전은 미구현.
+- 4단계 완료: 임시 사유 수정·내용 해시·불변 제출본·검토 묶음 대조·SUBMITTED 제출. 이후 5단계에서 승인·반영·반려·철회·새 리비전을 연결했다.
+- 5단계 완료: 승인 원자 반영·실제 변경 이력·동시 결정·멱등 재요청·반려·철회·새 리비전과 역할별 화면. CI는 미구성.
 - 기존 참고 자료는 읽기 전용으로 확인했으며 프로젝트로 복사하지 않았다.
 - 회사 저장소·DB는 조회하지 않았다. 전역 Git 설정은 바꾸지 않았다.
 
@@ -91,14 +92,14 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**5단계: 승인·반영·반려·철회·새 리비전과 처리 이력**을 같은 채팅에서 진행한다.
+**6단계: GitHub Actions·최종 검증·시연 안내**를 같은 채팅에서 진행한다.
 
-1. docs/DESIGN.md 5~6절의 고정 제출본·승인 원자성·멱등 계약을 기준으로 V4 마이그레이션과 최소 앱 권한을 설계한다.
-2. 승인 대기 목록과 상세는 mutable workspace가 아니라 revision_submission 전체 묶음을 읽는다. 렌더링한 revisionId·contentHash만 결정 API로 보낸다.
-3. 활성·역할·자기 승인 금지→요청·현재 리비전·제출 상태→서버 제출본·hash→장비 코드순 잠금→모든 기대 버전→CREATE 존재·UNIQUE→실제 변경·이력→APPLIED를 단일 트랜잭션으로 처리한다.
-4. 변경 없음 행도 충돌 검사하되 값·버전·변경 이력을 증가시키지 않는다. 전체 롤백, 동시 승인·신규 UNIQUE 경합, 동일 승인자 응답 유실 재요청과 다른 승인자의 중복 요청을 실제 PG에서 검증한다.
-5. 반려·철회는 기존 제출본을 보존하고, 새 DRAFT는 별도 리비전으로 생성한다. 구 리비전과 자기 결정 차단을 API/DB로 확인한다.
-6. 요청자·승인자·조회자 화면의 전체 흐름을 연결하고 Chrome에서 표시한 묶음과 결정 요청의 일치를 검증한다.
+1. 사용자 커밋 완료 통보 시 로컬 HEAD와 GitHub main을 먼저 확인한다. 현재 미커밋 파일을 임의로 커밋하지 않는다.
+2. 기존 InvMgmt의 개인 프로젝트 CI 구성은 읽기 전용으로 참고해 양식을 맞춘다. MstChgMgmt에 backend-ci·frontend-ci를 추가한다.
+3. Java 21·PostgreSQL 16 임베디드 테스트와 Node 24 타입 검사·UI 테스트·빌드를 CI에 연결하고 실제 GitHub 실행 결과를 확인한 뒤 배지를 넣는다.
+4. GitHub fine-grained 토큰에 Contents 외 Workflows 쓰기 권한이 필요한지 실제 push 오류/설정에 따라 안내한다. 토큰 값을 채팅으로 받지 않는다.
+5. 시연 순서·권한·버전 충돌·반려/철회/새 리비전·DB 조회를 README와 시연 문서에 정리한다. 구현 범위 밖 항목을 임의로 늘리지 않는다.
+6. 최종 검증은 새 변경과 미해결 위험에 비례해 수행하고 이미 통과한 테스트를 불필요하게 반복하지 않는다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -277,3 +278,32 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - 승인·반영·반려·철회·새 리비전·성공 변경 이력·승인 재요청은 아직 미구현이다. 이번 재요청 검증은 SUBMIT만 해당한다.
 - 사용자 작업 방식: 커밋 완료 통보 시 로컬 HEAD와 GitHub main을 확인하고 정상 반영이면 별도 확인 없이 다음 단계로 진행한다. 사용자 요청 없이 커밋하지 않는다. push 상태 조회와 실제 push 수행 권한을 구분한다.
 - 커밋 메시지: 불변 제출본 및 내용 해시와 변경 요청 제출 구현. 이전 gradlew.bat 줄바꿈 변경은 제외한다.
+
+
+## 5단계 구현·검증 완료 — 2026-10-15
+
+- 신규 서버: src/main/java/com/hwandevblog/mstchgmgmt/request/DecisionService.java, DecisionController.java.
+- 변경 서버: ChangeRevision.java(최종 상태·기반 리비전), ChangeRevisionRepository.java(리비전 목록), common/ApiExceptionHandler.java(409/500 확인 번호·별도 로그).
+- DB V4: src/main/resources/db/migration/V4__add_decisions_and_equipment_changes.sql. revision_decision·equipment_change·불변 트리거, based_on_revision_id·동일 요청 FK·UNIQUE, 최소 장비 쓰기 권한. 기존 V1~V3 미변경. 실제 시연 DB V4 적용 완료.
+- 신규 UI: frontend/src/WorkflowActions.tsx, RevisionHistory.tsx, WorkflowActions.test.tsx, AppSession.test.tsx.
+- 변경 UI: App.tsx·App.test.tsx·SubmissionPanel.tsx·api.ts·styles.css. 승인 대기·반영 이력·목록 갱신·결정·현재/과거 리비전 조회. 조회자의 CSV 원본 버튼은 숨긴다.
+- 신규 Chrome: frontend/e2e/zz-workflow.spec.ts 3건. 기존 submission.spec.ts의 완료 안내 문구만 갱신했다.
+- 신규 API/DB: src/test/java/com/hwandevblog/mstchgmgmt/DecisionApiTest.java 13건. 전체 서버 117건, 실패·오류·건너뜀 0. test,bootJar 성공.
+- 프론트엔드 타입 검사·빌드 성공, 단위/UI 17건 통과. Chrome 총 7건 통과; 최종 새로고침 경로 변경 후 업무 3건을 재확인했다.
+- 역할별 API: GET /api/approvals/pending, /api/history/applied; POST /api/requests/{requestId}/approve·reject·withdraw·revisions; GET /api/requests/{requestId}/history 및 /revisions/{revisionId}/decision.
+- 결정·새 리비전 body는 revisionId·contentHash, 반려는 reason 필수, 철회 reason은 선택이다. 클라이언트 rows는 400. 액터는 인증 세션만 사용한다.
+- 요청→리비전→장비 코드순 잠금, 기대 버전·변경 전 값 대조, CREATE 존재/UNIQUE 검사 후 서버 고정 제출본에서만 적용한다. 장비·실제 변경·영수증·APPLIED가 한 트랜잭션이다.
+- 신규 version=0, 실제 UPDATE version+1, 변경 없음은 충돌 검사만 하고 이력·버전 증가 없음. 후행 장비 UPDATE 실패와 마지막 APPLIED UPDATE 실패 주입에서 전체 롤백·SUBMITTED 유지·성공 이력 없음 확인.
+- 같은 승인자의 동시 재요청은 한 영수증, 다른 승인자 경합은 한 성공·한 충돌. 신규 코드 경합은 두 트랜잭션을 INSERT 직전에 advisory lock으로 묶어 UNIQUE 최종 방어를 검증했다.
+- 재요청 전 역할·활성·자기 결정 금지 재검사, 이중 역할 자기 승인/반려403, 변경 없음 행 버전 충돌409, 잘못된 해시409, 반려 사유 필수, 철회 소유권, APPLIED 재작성 불가, 과거 리비전 결정409 확인.
+- 새 DRAFT는 기존 제출 사유·파일을 복사하고 새 fileId·검증 NULL로 생성한다. 동일 새 리비전 재요청은 같은 현재 DRAFT를 반환한다. 이전 REJECTED/WITHDRAWN 제출본·영수증 보존.
+- API/DB 오류 traceId는 별도 서버 로그와 응답에만 기록한다. 실패 진단을 성공 이력 테이블에 넣지 않는다.
+- 계정 전환 epoch로 지연된 자식 처리 콜백을 폐기한다. 실제 React 테스트에서 가드를 잠시 제거하자 타인 비공개 사유가 다시 표시되어 실패했다. 원본 App.tsx SHA-256 일치 복원 후 전체 UI 17건 재통과. 운영/시연 화면 리소스에는 제거한 코드를 반영하지 않았다.
+- 실제 Chrome에서 반려 응답을 서버 처리 후 지연시킨 상태로 로그아웃·다른 요청자 로그인·목록 조회 후 응답을 전달해 타인 상세가 나타나지 않음을 확인했다.
+- 목록 갱신은 별도 async 상태 갱신 대신 기존 취소 가능한 조회 effect를 재사용해 계정·페이지 전환의 늦은 목록 응답도 폐기한다.
+- 실제 DB·앱 재시작 전후 APPLIED 값·버전·영수증·고정 제출본, REJECTED/WITHDRAWN 이전 제출본과 3번째 DRAFT·원본·검증 상태가 일치했다. .local/verification/workflow-restart.json은 Git 제외.
+- 서버 18081·DB 15433 실행 중, 세션 54684. DBeaver는 catalog.revision_decision·equipment_change·revision_submission·change_revision을 조회하면 된다.
+- 시연 DB에는 Chrome 검증용 신규 장비·요청·승인/반려/철회 이력이 남아 있다. 초기 장비 값은 Chrome에서 변경하지 않았다. 서버 실패·경합 실험은 별도 임시 DB만 사용했다.
+- 캡처 frontend/test-results/approval-desktop.png, applied-history-mobile.png는 Git 제외. Playwright 재실행 시 test-results는 정리되므로 이전 재시작 확인 캡처는 남지 않을 수 있다.
+- README·DESIGN·HANDOFF는 단계 완료 시 한 번 갱신했다. InvMgmt와 회사 저장소·DB는 이번 단계에서 수정·조회하지 않았다.
+- 커밋 메시지: 기준정보 승인 반영 및 반려·철회와 리비전 이력 구현. 이전 gradlew.bat 줄바꿈 변경은 제외한다.

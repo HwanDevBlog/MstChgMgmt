@@ -25,13 +25,24 @@ export type Snapshot = {
   reason: string; rulesVersion: string; fileId: string; validationId: string; filename: string;
   originalSha256: string; contentHash: string; rows: Comparison[]; submissionId: string | null; submittedAt: string | null;
 };
+export type DecisionReceipt = {
+  decisionId: string; requestId: number; revisionId: number; contentHash: string; action: string; state: string;
+  actorId: number; actorUsername: string; reason: string; processedAt: string;
+  changes: { equipmentCode: string; operation: string; before: Values | null; after: Values }[];
+};
+export type RevisionInfo = { revisionId: number; revisionNumber: number; state: string; reason: string; createdAt: string };
 const errorMessages: Record<string, string> = {
+  CATALOG_CONFLICT: '기준정보가 변경되었습니다. 요청자가 철회한 뒤 새 리비전에서 재검토해야 합니다.',
+  CREATE_EXISTS: '신규 코드가 이미 등록되었습니다. 새 리비전에서 재검토해야 합니다.',
+  DECISION_ALREADY_TAKEN: '다른 처리가 이미 완료되었습니다. 결과를 확인하세요.',
+  REJECTION_REASON_REQUIRED: '반려 사유를 500자 이하로 입력하세요.',
+  TRANSACTION_FAILED: '처리 중 오류가 발생해 전체 변경이 롤백되었습니다. 처리 결과를 확인하고 다시 시도하세요.',
   REASON_REQUIRED: '제출할 변경 사유를 입력하고 저장하세요.', VALIDATION_REQUIRED: '파일을 업로드하고 오류 없이 검증을 완료하세요.',
   STALE_CATALOG: '기준정보가 변경되었습니다. 다시 검증하고 변경 내용을 검토하세요.', NO_CHANGES: '변경할 내용이 없어 제출할 수 없습니다.',
   SUBMISSION_MISMATCH: '검토한 파일·검증 결과·사유가 달라졌습니다. 최신 내용을 다시 확인하세요.', INVALID_REASON: '변경 사유는 500자 이하이며 NUL 문자를 포함할 수 없습니다.',
 };
 export class ApiError extends Error {
-  constructor(public status: number, public code?: string) {
+  constructor(public status: number, public code?: string, public traceId?: string) {
     super((code && errorMessages[code]) || (status === 401 ? '로그인이 필요합니다.' : status === 403
       ? '이 작업에 대한 권한이 없습니다.' : status === 409 ? '파일·리비전이 변경되었거나 현재 상태에서 처리할 수 없습니다. 최신 상태를 확인하세요.' : status === 413 ? '파일은 1MiB 이하여야 합니다.' : '요청을 처리하지 못했습니다. 다시 확인해 주세요.'));
   }
@@ -41,7 +52,7 @@ async function send<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, { ...options, credentials: 'same-origin', cache: 'no-store' });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new ApiError(response.status, error?.code);
+    throw new ApiError(response.status, error?.code, error?.traceId);
   }
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
@@ -55,6 +66,13 @@ async function mutate<T>(path: string, body?: BodyInit, contentType?: string): P
 }
 
 export const api = {
+  pending: () => send<ChangeRequest[]>('/api/approvals/pending'),
+  applied: () => send<ChangeRequest[]>('/api/history/applied'),
+  history: (requestId: number) => send<RevisionInfo[]>(`/api/requests/${requestId}/history`),
+  revision: (requestId: number, revisionId: number) => send<ChangeRequest>(`/api/requests/${requestId}/revisions/${revisionId}`),
+  decision: (request: ChangeRequest) => send<DecisionReceipt>(revisionPath(request) + '/decision'),
+  decide: (snapshot: Snapshot, action: 'approve' | 'reject' | 'withdraw', reason?: string) => mutate<DecisionReceipt>(`/api/requests/${snapshot.requestId}/${action}`, JSON.stringify({ revisionId: snapshot.revisionId, contentHash: snapshot.contentHash, ...(reason === undefined ? {} : { reason }) }), 'application/json'),
+  newDraft: (snapshot: Snapshot) => mutate<ChangeRequest>(`/api/requests/${snapshot.requestId}/revisions`, JSON.stringify({ revisionId: snapshot.revisionId, contentHash: snapshot.contentHash }), 'application/json'),
   prepare: (request: ChangeRequest) => send<Snapshot>(revisionPath(request) + '/submission-preview'),
   submission: (request: ChangeRequest) => send<Snapshot>(revisionPath(request) + '/submission'),
   saveReason: (request: ChangeRequest, reason: string) => mutate<ChangeRequest>(revisionPath(request) + '/reason', JSON.stringify({ reason }), 'application/json'),

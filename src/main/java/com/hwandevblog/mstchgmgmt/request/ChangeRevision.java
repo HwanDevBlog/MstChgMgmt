@@ -25,6 +25,9 @@ public class ChangeRevision {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name="based_on_revision_id")
+    private Long basedOnRevisionId;
+
     protected ChangeRevision() { }
     public ChangeRevision(long requestId, String reason) {
         this.requestId = requestId;
@@ -32,6 +35,14 @@ public class ChangeRevision {
         this.state = State.DRAFT;
         this.reason = reason;
         this.createdAt = Instant.now();
+    }
+    public ChangeRevision(long requestId,String reason,int number,long basedOn) {
+        this(requestId,reason);this.revisionNumber=number;this.basedOnRevisionId=basedOn;
+    }
+    public Long getBasedOnRevisionId(){return basedOnRevisionId;}
+    public void finish(State next) {
+        if(state!=State.SUBMITTED || (next!=State.APPLIED && next!=State.REJECTED && next!=State.WITHDRAWN))throw new IllegalStateException("Submitted decision required");
+        state=next;
     }
     public void changeReason(String reason) { this.reason = reason; }
     public void submit() {

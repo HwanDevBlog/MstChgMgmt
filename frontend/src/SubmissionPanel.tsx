@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import WorkflowActions from './WorkflowActions';
 import { api, ApiError, formatFee } from './api';
-import type { ChangeRequest, Snapshot, Values } from './api';
+import type { ChangeRequest, Snapshot, Values, User } from './api';
 
 const categories: Record<string, string> = { CAMERA: '카메라', AUDIO: '음향', LIGHTING: '조명', ACCESSORY: '액세서리' };
 const labels = { name: '장비명', category: '분류', dailyFeeKrw: '일 대여료', active: '사용 여부' };
@@ -14,8 +15,8 @@ function value(row: Values | null, field: typeof fields[number]) {
  * 화면에 표시한 제출 묶음의 식별자와 해시를 그대로 전송한다.
  * 실패 후 확인 내용을 자동 교체하지 않고 사용자가 다시 검토하도록 한다.
  */
-export default function SubmissionPanel({ request, onUpdated, onFailure }: {
-  request: ChangeRequest; onUpdated: (request: ChangeRequest) => void; onFailure: (cause: unknown) => void;
+export default function SubmissionPanel({ request, onUpdated, onFailure, user, isCurrent = true }: {
+  request: ChangeRequest; user?: User; isCurrent?: boolean; onUpdated: (request: ChangeRequest) => void; onFailure: (cause: unknown) => void;
 }) {
   const [bundle, setBundle] = useState<Snapshot | null>(null);
   const [reason, setReason] = useState(request.reason);
@@ -57,7 +58,7 @@ export default function SubmissionPanel({ request, onUpdated, onFailure }: {
   }
   return <section className="card" aria-label={readOnly ? '고정 제출본' : '제출 확인'}>
     <div className="card-heading"><h2>{readOnly ? '고정 제출본' : '제출 확인'}</h2>
-      {readOnly && <span className="badge enabled">승인 대기</span>}</div>
+      {readOnly && <span className="badge enabled">{({ SUBMITTED: '승인 대기', APPLIED: '반영 완료', REJECTED: '반려', WITHDRAWN: '철회' } as Record<string, string>)[request.state]}</span>}</div>
     <div className="submission-body">
       {!readOnly && <>
         <p className="muted">제출하면 변경 사유·파일·전후 값이 고정되어 수정할 수 없습니다. 실제 기준정보는 승인 단계에서 반영됩니다.</p>
@@ -68,8 +69,8 @@ export default function SubmissionPanel({ request, onUpdated, onFailure }: {
       </>}
       {error && <p className="error" role="alert">{error}</p>}
       {bundle && <>
-        {readOnly && <p className="notice">제출이 완료되었습니다. 아래 내용은 제출 시점에 고정된 값입니다.</p>}
-        {readOnly && <p><a className="text-button" href={api.originalUrl(request)}>제출 원본 다운로드</a></p>}
+        {readOnly && <p className="notice">아래 내용은 제출 시점에 고정된 값입니다.</p>}
+        {readOnly && user && ((user.id === request.requesterId && user.roles.includes('REQUESTER')) || (request.state === 'SUBMITTED' && user.roles.includes('APPROVER'))) && <p><a className="text-button" href={api.originalUrl(request)}>제출 원본 다운로드</a></p>}
         <dl className="detail-grid"><dt>요청 / 리비전</dt><dd>#{bundle.requestId} / {bundle.revisionNumber}</dd>
           <dt>변경 사유</dt><dd>{bundle.reason}</dd><dt>파일</dt><dd>{bundle.filename}</dd>
           {bundle.submittedAt && <><dt>제출 시각</dt><dd>{new Date(bundle.submittedAt).toLocaleString('ko-KR')}</dd></>}</dl>
@@ -85,6 +86,7 @@ export default function SubmissionPanel({ request, onUpdated, onFailure }: {
         {!readOnly && <><label className="submission-check"><input type="checkbox" checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)} />위 변경 내용과 사유를 확인했습니다.</label>
           <div className="workspace-actions"><button className="quiet" disabled={busy} onClick={() => { setBundle(null); setConfirmed(false); }}>검토로 돌아가기</button>
             <button className="primary" disabled={busy || !confirmed} onClick={submit}>{busy ? '제출 중…' : '승인 요청 제출'}</button></div></>}
+        {readOnly && user && <WorkflowActions request={request} snapshot={bundle} user={user} isCurrent={isCurrent} onUpdated={onUpdated} onFailure={onFailure} />}
       </>}
       {readOnly && !bundle && !error && <p className="muted">제출본을 불러오고 있습니다…</p>}
     </div>

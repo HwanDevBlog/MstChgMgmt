@@ -146,3 +146,7 @@ summary { cursor: pointer; color: var(--accent); font-size: 12px; }
 .submission-check { display: flex; flex-direction: row; align-items: center; gap: 9px; padding: 18px 0; }
 .submission-check input { width: 17px; height: 17px; accent-color: var(--accent); margin: 0; }
 @media (max-width: 650px) { .submission-body { padding: 14px; } }
+
+.workflow-actions { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 18px; }
+.decision-receipt h3 { font-size: 15px; color: var(--accent); }
+.decision-receipt { margin: 20px 0; }
