@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import RevisionWorkspace from './RevisionWorkspace';
+import SubmissionPanel from './SubmissionPanel';
 import type { FormEvent } from 'react';
 import { api, ApiError, formatFee } from './api';
 import type { ChangeRequest, Equipment, User } from './api';
@@ -84,6 +85,11 @@ export default function App() {
     finally { setBusy(false); }
   }
 
+  function updatedRequest(value: ChangeRequest) {
+    setNotice(value.state === 'SUBMITTED' ? `요청 #${value.requestId}을 승인 요청으로 제출했습니다.` : `요청 #${value.requestId}의 변경 사유를 저장했습니다.`);
+    setSelected(value); setRequests(rows => rows.map(row => row.requestId === value.requestId ? value : row));
+  }
+
   async function detail(id: number) {
     setBusy(true); setError('');
     try { setSelected(await api.detail(id)); }
@@ -143,7 +149,8 @@ export default function App() {
             <dl className="detail-grid"><dt>현재 리비전</dt><dd>{selected.revisionNumber}</dd><dt>변경 사유</dt><dd>{selected.reason || '미작성'}</dd>
               <dt>작성일</dt><dd>{new Date(selected.createdAt).toLocaleString('ko-KR')}</dd></dl></section>
             {selected.state === 'DRAFT' && selected.requesterId === user.id && <RevisionWorkspace
-              key={selected.revisionId} request={selected} onFailure={report} />}
+              key={selected.revisionId} request={selected} onFailure={report} onUpdated={updatedRequest} />}
+            {selected.state === 'SUBMITTED' && <SubmissionPanel key={`submitted-${selected.revisionId}`} request={selected} onUpdated={updatedRequest} onFailure={report} />}
           </>}
         </>}
       </main></div>

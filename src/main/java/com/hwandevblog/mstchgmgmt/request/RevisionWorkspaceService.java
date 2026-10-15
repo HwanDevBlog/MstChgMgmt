@@ -70,6 +70,9 @@ public class RevisionWorkspaceService {
 
     public Original original(SessionUser user, long requestId, long revisionId) {
         authorize(user, requestId, revisionId, RevisionPolicy.Action.VIEW_ORIGINAL, false);
+        var frozen = jdbc.query("SELECT filename,original FROM revision_submission WHERE revision_id=?",
+                (rs,n) -> new Original(rs.getString(1),rs.getBytes(2)),revisionId);
+        if (!frozen.isEmpty()) return frozen.getFirst();
         var stored = required(revisionId);
         return new Original(stored.filename(), stored.bytes());
     }

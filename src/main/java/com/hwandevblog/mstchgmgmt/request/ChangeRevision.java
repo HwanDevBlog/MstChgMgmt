@@ -33,6 +33,11 @@ public class ChangeRevision {
         this.reason = reason;
         this.createdAt = Instant.now();
     }
+    public void changeReason(String reason) { this.reason = reason; }
+    public void submit() {
+        if (state != State.DRAFT) throw new IllegalStateException("Draft required");
+        state = State.SUBMITTED;
+    }
     public Long getId() { return id; }
     public Long getRequestId() { return requestId; }
     public int getRevisionNumber() { return revisionNumber; }

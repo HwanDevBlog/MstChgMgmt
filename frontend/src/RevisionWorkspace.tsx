@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import SubmissionPanel from './SubmissionPanel';
 import type { ChangeRequest, Comparison, Preview, Workspace } from './api';
 import { api, ApiError, formatFee } from './api';
 
@@ -25,8 +26,8 @@ function display(row: Comparison['after'] | null, field: typeof fields[number]) 
   return field === 'category' ? categories[row.category] ?? row.category : row.name;
 }
 
-export default function RevisionWorkspace({ request, onFailure }: {
-  request: ChangeRequest; onFailure: (cause: unknown) => void;
+export default function RevisionWorkspace({ request, onFailure, onUpdated = () => {} }: {
+  request: ChangeRequest; onFailure: (cause: unknown) => void; onUpdated?: (request: ChangeRequest) => void;
 }) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -121,5 +122,6 @@ export default function RevisionWorkspace({ request, onFailure }: {
         <details><summary>검증 식별 정보</summary><dl className="detail-grid"><dt>규칙 버전</dt><dd>{preview.rulesVersion}</dd><dt>파일 해시</dt><dd className="hash-value">{workspace?.originalSha256}</dd>
           <dt>검증 ID</dt><dd className="hash-value">{preview.validationId}</dd></dl></details></div>
     </section>}
+    {preview?.valid && !preview.stale && <SubmissionPanel key={`${preview.fileId}-${preview.validationId}`} request={request} onUpdated={onUpdated} onFailure={onFailure} />}
   </div>;
 }

@@ -133,3 +133,16 @@ summary { cursor: pointer; color: var(--accent); font-size: 12px; }
   .validation-counts .muted { margin-left: 0; width: 100%; }
   .upload-picker { align-items: stretch; flex-direction: column; }
 }
+
+.submission-body { padding: 19px; }
+.submission-body > .muted { margin-top: 0; }
+.reason-actions { margin-top: 15px; }
+.submitted-row { border-top: 1px solid var(--line); padding-top: 17px; margin-top: 20px; }
+.submitted-row h3 { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 13px; margin: 0 0 12px; }
+.submitted-row h3 .muted { margin-left: auto; font-weight: 400; }
+.submitted-row table { table-layout: fixed; min-width: 420px; }
+.submitted-row td { white-space: normal; overflow-wrap: anywhere; }
+.submission-identifiers { margin: 20px 0; }
+.submission-check { display: flex; flex-direction: row; align-items: center; gap: 9px; padding: 18px 0; }
+.submission-check input { width: 17px; height: 17px; accent-color: var(--accent); margin: 0; }
+@media (max-width: 650px) { .submission-body { padding: 14px; } }

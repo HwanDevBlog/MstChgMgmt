@@ -13,6 +13,12 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ErrorResponse("FILE_TOO_LARGE"));
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> responseStatus(org.springframework.web.server.ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode()).body(new ErrorResponse(
+                exception.getReason() == null ? "REQUEST_FAILED" : exception.getReason()));
+    }
+
     public record ErrorResponse(String code) { }
 
     @ExceptionHandler(RevisionPolicy.Denied.class)

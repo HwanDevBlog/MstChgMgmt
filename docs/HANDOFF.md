@@ -1,12 +1,13 @@
-# 작업 인계 — 3단계 완료 (2026-10-15)
+# 작업 인계 — 제출 단계 완료 (2026-10-15)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `6134c06`(README 양식 변경), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. 3단계 변경은 미커밋·미push.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `f213d27`(CSV 업로드 및 검증과 변경 전후 비교 구현), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main 해시 일치를 확인했다. 제출 단계 변경은 미커밋·미push.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
-- 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지. 제출·승인은 미구현.
+- 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
+- 4단계 완료: 임시 사유 수정·내용 해시·불변 제출본·검토 묶음 대조·SUBMITTED 제출. 승인·반영·반려·철회·새 리비전은 미구현.
 - 기존 참고 자료는 읽기 전용으로 확인했으며 프로젝트로 복사하지 않았다.
 - 회사 저장소·DB는 조회하지 않았다. 전역 Git 설정은 바꾸지 않았다.
 
@@ -90,13 +91,14 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**4단계: 불변 제출본·내용 해시·제출**을 같은 채팅에서 진행한다.
+**5단계: 승인·반영·반려·철회·새 리비전과 처리 이력**을 같은 채팅에서 진행한다.
 
-1. docs/DESIGN.md의 길이 접두사 바이너리 v1 직렬화 계약을 읽고 고정 해시 벡터를 검증한다.
-2. fileId·validationId와 사용자가 본 비교값을 대조하고 유효 검증·사유·실제 변경 존재를 검사한다.
-3. 제출 시점의 기준정보 변경을 재검사하고 제출본을 별도 구조에 고정한다. 기존 DRAFT 작업 결과와 불변 제출본을 구분한다.
-4. 확정한 제출 확인 화면에 고정된 이유·파일·전후 값·기대 버전과 제출 ID/hash를 연결한다.
-5. 승인·반영은 후속 단계이며 DB 잠금·UNIQUE 경합·전체 롤백·응답 유실 재요청 검증을 생략하지 않는다.
+1. docs/DESIGN.md 5~6절의 고정 제출본·승인 원자성·멱등 계약을 기준으로 V4 마이그레이션과 최소 앱 권한을 설계한다.
+2. 승인 대기 목록과 상세는 mutable workspace가 아니라 revision_submission 전체 묶음을 읽는다. 렌더링한 revisionId·contentHash만 결정 API로 보낸다.
+3. 활성·역할·자기 승인 금지→요청·현재 리비전·제출 상태→서버 제출본·hash→장비 코드순 잠금→모든 기대 버전→CREATE 존재·UNIQUE→실제 변경·이력→APPLIED를 단일 트랜잭션으로 처리한다.
+4. 변경 없음 행도 충돌 검사하되 값·버전·변경 이력을 증가시키지 않는다. 전체 롤백, 동시 승인·신규 UNIQUE 경합, 동일 승인자 응답 유실 재요청과 다른 승인자의 중복 요청을 실제 PG에서 검증한다.
+5. 반려·철회는 기존 제출본을 보존하고, 새 DRAFT는 별도 리비전으로 생성한다. 구 리비전과 자기 결정 차단을 API/DB로 확인한다.
+6. 요청자·승인자·조회자 화면의 전체 흐름을 연결하고 Chrome에서 표시한 묶음과 결정 요청의 일치를 검증한다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -251,3 +253,27 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - UI 캡처 frontend/test-results/workspace-desktop.png, workspace-mobile-final.png는 Git 제외. Chrome 검증용 DRAFT는 보존했다.
 - README·DESIGN·HANDOFF는 이 단계 종료 시 한 번 갱신했다. InvMgmt는 이번 단계에서 변경하지 않았다.
 - 3단계 커밋 메시지: CSV 업로드 및 검증과 변경 전후 비교 구현. 이전부터 남아 있던 gradlew.bat 줄바꿈 변경은 이번 단계 대상에서 제외한다.
+
+
+## 4단계 구현·검증 완료 — 2026-10-15
+
+- 신규 서버: domain/SubmissionContent.java, request/SubmissionService.java, SubmissionController.java. base src/main/java/com/hwandevblog/mstchgmgmt.
+- 변경 서버: ChangeRequestRepository.java(요청 잠금), ChangeRevision.java(사유 수정·SUBMITTED 전환), RevisionWorkspaceService.java(제출 원본 우선 다운로드), common/ApiExceptionHandler.java(409 코드 응답).
+- DB: src/main/resources/db/migration/V3__add_immutable_submission.sql. catalog.revision_submission, reject_submission_mutation 함수·immutable_submission 트리거. 앱 SELECT·INSERT만 허용. V1/V2는 수정하지 않았다. 실제 시연 DB에도 V3 적용했다.
+- 신규 UI: frontend/src/SubmissionPanel.tsx, SubmissionPanel.test.tsx. App.tsx·RevisionWorkspace.tsx·api.ts·styles.css 연결. 사유 저장→제출 전체 내용 확인→확인 체크→제출→고정 제출본·원본 다운로드.
+- 신규 테스트: src/test/java/com/hwandevblog/mstchgmgmt/domain/SubmissionContentTest.java 4건, SubmissionApiTest.java 12건, frontend/e2e/submission.spec.ts 1건.
+- API 기준 /api/requests/{requestId}/revisions/{revisionId}: POST /reason({reason}), GET /submission-preview, POST /submission({fileId,validationId,contentHash}), GET /submission.
+- 준비 응답에는 요청·리비전·요청자·사유·규칙·파일·원본 해시·내용 해시·전체 전후 값·기대 버전이 함께 있다. 제출 성공 시 UUID submissionId·submittedAt이 추가된다.
+- 준비 조회는 본인 현재 DRAFT이며 사유·유효 검증·실제 변경·기준정보 일치를 검사한다. 제출 시 동일 검사를 다시 하고 화면이 보낸 fileId·validationId·contentHash와 대조한다. 클라이언트 rows 등 변경값 전송은 400이다.
+- 내용 해시 v1 고정 벡터 364바이트 / 16e894d120581b639ea00bb574c3537df77656068acd20e27fa6b4a4664b0f7d. 행 정렬·사유 원문·기대 버전·변경 없음 포함을 검증했다.
+- 실제 PG: 동일 동시 제출은 한 영수증, 이미 INSERT한 후 상태 갱신 실패 주입은 DRAFT·제출본 0개로 전체 롤백. 앱 UPDATE·DELETE·TRUNCATE 42501, 소유자 UPDATE·DELETE 트리거 55000 확인.
+- 오래된 검증·파일·사유·현재 리비전·기준정보를 거부하고 빈 사유·변경 없음 제출을 거부했다. 다른 요청자·승인자·조회자는 타인 DRAFT 준비·수정·제출 불가. 제출 후 소유자·타인 승인자 조회 허용, 조회자·다른 요청자 제출본 접근 거부.
+- workspace 원본을 관리자 fixture로 변경해도 GET /file은 고정 제출본의 원본을 반환했다. 장비 금액·버전은 제출로 변경되지 않았다.
+- 최종 서버 test,bootJar 성공: 104건, 실패·오류·건너뜀 0. 프론트엔드 build·test:run 13건, 실제 Chrome E2E 4건 통과.
+- Chrome은 표시한 묶음 확인 후 다른 검증 결과로 바꾸는 상황을 직접 만들고, 409 안내·기존 값 유지·재검토·다시 확인한 식별자만 제출·결과 복원을 검증했다.
+- 시연 PostgreSQL·앱을 pg_ctl 정상 종료 후 재실행해 submissionId·contentHash·원본 바이트·전체 스냅샷·SUBMITTED 동일성을 확인했다. .local/verification/submission-restart.json은 Git 제외.
+- 시연 서버 18081, DB 15433 실행 중. 세션 91437. 새로 로그인하면 제출된 요청 #10의 고정 제출본을 볼 수 있다. 이 번호는 시연 fixture로 환경마다 달라진다.
+- 캡처 frontend/test-results/submission-desktop.png, submission-mobile-final.png는 Git 제외. E2E에서 만든 요청은 보존했다.
+- 승인·반영·반려·철회·새 리비전·성공 변경 이력·승인 재요청은 아직 미구현이다. 이번 재요청 검증은 SUBMIT만 해당한다.
+- 사용자 작업 방식: 커밋 완료 통보 시 로컬 HEAD와 GitHub main을 확인하고 정상 반영이면 별도 확인 없이 다음 단계로 진행한다. 사용자 요청 없이 커밋하지 않는다. push 상태 조회와 실제 push 수행 권한을 구분한다.
+- 커밋 메시지: 불변 제출본 및 내용 해시와 변경 요청 제출 구현. 이전 gradlew.bat 줄바꿈 변경은 제외한다.
