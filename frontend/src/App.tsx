@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import RevisionWorkspace from './RevisionWorkspace';
 import type { FormEvent } from 'react';
 import { api, ApiError, formatFee } from './api';
 import type { ChangeRequest, Equipment, User } from './api';
@@ -94,7 +95,7 @@ export default function App() {
   if (!user) return <main className="login-layout">
     <header className="login-header"><span className="wordmark"><span className="brand-symbol" aria-hidden="true">▤</span>MstChgMgmt</span>
       <span className="muted">기준정보 변경 관리</span></header>
-    <section className="login-body"><div className="login-panel"><span className="login-symbol" aria-hidden="true">→</span>
+    <section className="login-body"><div className="login-panel">
       <h1>업무를 시작하세요</h1><p className="muted">장비 기준정보와 변경 요청을 관리합니다.</p>
       <form onSubmit={login}>
         <label>아이디<input name="username" autoComplete="username" placeholder="아이디를 입력하세요" required disabled={busy} /></label>
@@ -138,9 +139,12 @@ export default function App() {
               <td>{new Date(row.createdAt).toLocaleDateString('ko-KR')}</td><td><button className="text-button" aria-label={`요청 ${row.requestId} 상세`} onClick={() => detail(row.requestId)} disabled={busy}>보기</button></td></tr>)}</tbody></table></div>
             {!requests.length && <p className="empty">아직 작성한 요청이 없습니다.</p>}
           </section>
-          {selected && <section className="card" aria-label="변경 요청 상세"><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge">{states[selected.state] ?? selected.state}</span></div>
+          {selected && <><section className="card" aria-label="변경 요청 상세"><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge">{states[selected.state] ?? selected.state}</span></div>
             <dl className="detail-grid"><dt>현재 리비전</dt><dd>{selected.revisionNumber}</dd><dt>변경 사유</dt><dd>{selected.reason || '미작성'}</dd>
-              <dt>작성일</dt><dd>{new Date(selected.createdAt).toLocaleString('ko-KR')}</dd></dl></section>}
+              <dt>작성일</dt><dd>{new Date(selected.createdAt).toLocaleString('ko-KR')}</dd></dl></section>
+            {selected.state === 'DRAFT' && selected.requesterId === user.id && <RevisionWorkspace
+              key={selected.revisionId} request={selected} onFailure={report} />}
+          </>}
         </>}
       </main></div>
   </div>;

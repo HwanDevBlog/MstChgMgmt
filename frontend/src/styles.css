@@ -25,7 +25,6 @@ textarea { resize: vertical; min-height: 100px; font-weight: 400; }
 .login-header .muted { font-size: 11px; }
 .login-body { display: flex; justify-content: center; padding: clamp(45px, 9vh, 95px) 20px 80px; }
 .login-panel { width: 385px; max-width: 100%; background: white; padding: 35px; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 7px 28px #253d2f06; }
-.login-symbol { display: grid; place-items: center; width: 43px; height: 43px; background: var(--soft); color: var(--accent); border-radius: 12px; margin-bottom: 23px; font-size: 24px; }
 .login-panel .muted { margin: 10px 0 0; }
 .login-panel label { margin-top: 23px; }
 .login-panel .primary { width: 100%; margin-top: 26px; height: 46px; }
@@ -101,4 +100,36 @@ dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   h1 { font-size: 22px; }
   .card-heading { padding: 14px; flex-wrap: wrap; }
   .detail-grid { grid-template-columns: 75px minmax(0, 1fr); gap: 12px; }
+}
+
+.upload-body, .validation-summary, .validation-footer { padding: 19px; }
+.upload-body > .muted { margin-top: 0; }
+.csv-help { margin: 17px 0; padding: 13px; background: #f6f9f7; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+.csv-help code { display: block; overflow-wrap: anywhere; margin-top: 14px; font-size: 11px; }
+.file-summary { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 8px; padding: 18px; margin-bottom: 18px; font-size: 12px; }
+.file-summary strong { overflow-wrap: anywhere; }
+.file-summary a { color: var(--accent); }
+.upload-picker { display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap; }
+.upload-picker label { flex: 1; min-width: 0; }
+.upload-picker input { font-size: 12px; }
+.upload-picker input::file-selector-button { background: var(--soft); color: var(--accent); border: 0; padding: 8px 12px; border-radius: 4px; margin-right: 12px; cursor: pointer; }
+.workspace-actions, .validation-counts { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.validation-counts { gap: 20px; font-size: 12px; }
+.validation-counts strong { font-size: 16px; color: var(--accent); margin-left: 5px; }
+.validation-counts .muted { margin-left: auto; }
+.comparison-detail { padding: 19px; border-top: 1px solid var(--line); }
+.comparison-detail h3 { font-size: 13px; font-weight: 600; margin: 0 0 15px; }
+.comparison-detail th, .comparison-detail td { white-space: normal; overflow-wrap: anywhere; min-width: 95px; }
+.comparison-detail table { table-layout: fixed; min-width: 420px; }
+.comparison-detail th:first-child { width: 22%; }
+.changed-value { background: var(--soft); color: var(--accent); font-weight: 600; }
+.selected-row { background: #f0f7f3; }
+.validation-footer { border-top: 1px solid var(--line); }
+.validation-footer > .muted { margin-top: 0; }
+.hash-value { font-family: Consolas, monospace; font-size: 11px; word-break: break-all; }
+@media (max-width: 650px) {
+  .upload-body, .validation-summary, .validation-footer, .comparison-detail { padding: 14px; }
+  .validation-counts .muted { margin-left: 0; width: 100%; }
+  .upload-picker { align-items: stretch; flex-direction: column; }
 }

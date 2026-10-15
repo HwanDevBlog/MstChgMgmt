@@ -1,11 +1,12 @@
-# 작업 인계 — 2단계 완료 (2026-10-15)
+# 작업 인계 — 3단계 완료 (2026-10-15)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 1단계 커밋 `3108111`, 2단계 변경은 미커밋. 원격 없음.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `6134c06`(README 양식 변경), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. 3단계 변경은 미커밋·미push.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
+- 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지. 제출·승인은 미구현.
 - 기존 참고 자료는 읽기 전용으로 확인했으며 프로젝트로 복사하지 않았다.
 - 회사 저장소·DB는 조회하지 않았다. 전역 Git 설정은 바꾸지 않았다.
 
@@ -89,15 +90,13 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**3단계: 업로드·검증·변경 비교**를 같은 채팅에서 진행한다.
+**4단계: 불변 제출본·내용 해시·제출**을 같은 채팅에서 진행한다.
 
-1. DRAFT의 CSV 원본·검증 결과·기준정보 미리보기 저장 구조를 별도 Flyway V2로 추가한다. 이미 적용된 V1은 수정하지 않는다.
-2. 원본 조회와 업로드 모두 서버 소유권·역할·상태를 검사한다.
-3. 파일 크기·행 제한을 업로드 경계에서도 적용하고 현재 CatalogCsvValidator를 연결한다.
-4. CREATE 존재·UPDATE 미존재, 중복, 신규/변경/변경 없음과 전후 값·기대 버전을 검증한다.
-5. 파일 변경 시 기존 검증·미리보기를 폐기하고, 사용자 검토 이후 기준정보 변경을 감지할 기반을 마련한다.
-6. React의 내 요청·상세 화면에 업로드와 행·필드별 오류, 비교를 연결하고 직접 API/DB/필요 E2E를 검증한다.
-7. 확정 결과를 문서에 한 번 반영하고 한국어 커밋 메시지와 파일 목록을 함께 안내한다.
+1. docs/DESIGN.md의 길이 접두사 바이너리 v1 직렬화 계약을 읽고 고정 해시 벡터를 검증한다.
+2. fileId·validationId와 사용자가 본 비교값을 대조하고 유효 검증·사유·실제 변경 존재를 검사한다.
+3. 제출 시점의 기준정보 변경을 재검사하고 제출본을 별도 구조에 고정한다. 기존 DRAFT 작업 결과와 불변 제출본을 구분한다.
+4. 확정한 제출 확인 화면에 고정된 이유·파일·전후 값·기대 버전과 제출 ID/hash를 연결한다.
+5. 승인·반영은 후속 단계이며 DB 잠금·UNIQUE 경합·전체 롤백·응답 유실 재요청 검증을 생략하지 않는다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -229,3 +228,26 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - DB 스키마 변경 없음. 검증용 DRAFT 추가는 기존 E2E 동작이며 보존했다.
 - 이전 2단계와 이번 디자인 모두 아직 커밋하지 않았다. 함께 커밋할 경우 권장 메시지: 로그인 및 기준정보 조회와 변경 요청 기본 화면 구현
 - 다음 작업은 확정 시안의 CSV 업로드·행 검증·변경 전후 비교 기능이다. 같은 채팅에서 진행한다.
+
+
+## 3단계 구현·검증 완료 — 2026-10-15
+
+- 신규 서버: src/main/java/com/hwandevblog/mstchgmgmt/request/RevisionWorkspaceService.java, RevisionWorkspaceController.java.
+- 변경 서버: 같은 폴더의 ChangeRevisionRepository.java(리비전 잠금), common/ApiExceptionHandler.java(413), src/main/resources/application.yml(Multipart 상한).
+- DB 변경: src/main/resources/db/migration/V2__add_revision_workspace.sql. catalog.revision_workspace 추가, 앱 SELECT·INSERT·UPDATE 부여. 기존 V1 변경 없음. 실제 시연 DB에도 V2 적용했다.
+- 신규 UI: frontend/src/RevisionWorkspace.tsx, RevisionWorkspace.test.tsx. 기존 App.tsx·App.test.tsx·api.ts·styles.css 연결.
+- 신규 API/DB 테스트: src/test/java/com/hwandevblog/mstchgmgmt/RevisionWorkspaceApiTest.java 11건. PersistentDatabaseTest.java에 원본·검증 JSON 보존 확인 추가.
+- 신규 Chrome 테스트: frontend/e2e/workspace.spec.ts. 샘플: samples/catalog-change.csv, samples/catalog-invalid.csv. 기존 catalog-create.csv도 사용 가능.
+- API 기준 경로 /api/requests/{requestId}/revisions/{revisionId}: POST/GET /file, POST /validation({fileId}), GET /workspace.
+- 업로드와 검증은 본인 현재 DRAFT만 허용한다. 조회·다운로드는 VIEW_ORIGINAL 정책을 따른다. 파일 교체 시 UUID 재발급·이전 검증 NULL, 과대 파일 거부 시 기존 데이터 유지.
+- 검증 결과: validationId·fileId·rulesVersion·valid·stale, 신규/변경/변경 없음 수, 레코드/필드/코드 오류, 전체 전후 값·기대 버전. 금액·버전은 문자열이다.
+- 현재 검증 JSON은 수정 가능한 작업 결과다. 불변 제출본·내용 해시·승인 API·기준정보 반영은 아직 없다. 검증·비교만으로 장비 데이터가 바뀌지 않는 것도 검증했다.
+- 서버 test,bootJar 성공: 88건, 실패·오류·건너뜀 0. 프론트엔드 build 성공, test:run 10건, 실제 서버/Chrome E2E 3건 통과.
+- API/DB 확인: 원본 바이트·BOM·SHA 보존, bigint 상한 문자열, DB 존재 오류, 타인 역할 접근403, 구 리비전409, 다른 요청 조합404, CSRF, 교체 후 이전 파일 ID409, 기준정보 값·버전 변경·신규 코드 등장 시 stale.
+- 실제 HTTP Multipart 1MiB 초과413 및 기존 파일·검증 ID 유지 확인. 오류 수정·파일 재선택·업로드·검증·다운로드·새로고침 복원 확인. 320px 문서 가로 넘침 없음, 비교표 내부 스크롤 확인.
+- 기존 터미널 강제 종료 후 PostgreSQL만 남아 있음을 발견했다. 시연 데이터 폴더를 지정한 pg_ctl stop -m fast -w로 정상 종료한 뒤 앱과 DB를 재시작했다. 데이터 디렉터리를 삭제하거나 재생성하지 않았다.
+- 실제 DB·앱 재시작 전후 원본 바이트·파일 ID/해시·validationId·전체 비교값·본인 요청 수 일치 확인. .local/verification/workspace-restart.json은 Git 제외한 검증 자료다.
+- 최종 시연 서버 18081, PostgreSQL 15433 실행 중. 실행 세션은 56802다. 재접속 시 세션 로그인이 필요할 수 있다. DBeaver 기존 연결은 재연결하면 된다.
+- UI 캡처 frontend/test-results/workspace-desktop.png, workspace-mobile-final.png는 Git 제외. Chrome 검증용 DRAFT는 보존했다.
+- README·DESIGN·HANDOFF는 이 단계 종료 시 한 번 갱신했다. InvMgmt는 이번 단계에서 변경하지 않았다.
+- 3단계 커밋 메시지: CSV 업로드 및 검증과 변경 전후 비교 구현. 이전부터 남아 있던 gradlew.bat 줄바꿈 변경은 이번 단계 대상에서 제외한다.

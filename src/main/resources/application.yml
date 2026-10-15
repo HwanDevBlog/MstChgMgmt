@@ -9,6 +9,10 @@ server:
         same-site: lax
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 1048576B
+      max-request-size: 2MB
   datasource:
     url: ${MCR_DB_URL:jdbc:postgresql://localhost:15433/catalog_review}
     username: ${MCR_DB_USER:mcr_app}

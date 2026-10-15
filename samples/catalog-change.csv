@@ -1,0 +1,4 @@
+operation,equipment_code,name,category,daily_fee_krw,active
+UPDATE,EQ-CAM100,여행용 카메라,CAMERA,17000,true
+CREATE,EQ-TRI200,삼각대,ACCESSORY,3000,true
+UPDATE,EQ-LGT100,휴대용 조명,LIGHTING,5000,false

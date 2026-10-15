@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> tooLarge() {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ErrorResponse("FILE_TOO_LARGE"));
+    }
+
     public record ErrorResponse(String code) { }
 
     @ExceptionHandler(RevisionPolicy.Denied.class)

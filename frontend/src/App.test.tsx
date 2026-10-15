@@ -5,11 +5,12 @@ import { api, ApiError } from './api';
 
 vi.mock('./api', async importOriginal => {
   const original = await importOriginal<typeof import('./api')>();
-  return { ...original, api: { me: vi.fn(), login: vi.fn(), logout: vi.fn(), equipment: vi.fn(), mine: vi.fn(), create: vi.fn(), detail: vi.fn() } };
+  return { ...original, api: { me: vi.fn(), login: vi.fn(), logout: vi.fn(), equipment: vi.fn(), mine: vi.fn(), create: vi.fn(), detail: vi.fn(), workspace: vi.fn() } };
 });
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(api.workspace).mockResolvedValue({ fileId: null, filename: null, size: 0, originalSha256: null, preview: null });
   vi.mocked(api.equipment).mockResolvedValue([]);
   vi.mocked(api.mine).mockResolvedValue([]);
 });

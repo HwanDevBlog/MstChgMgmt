@@ -30,6 +30,13 @@ class PersistentDatabaseTest {
                 sql.executeUpdate("INSERT INTO catalog.change_request(requester_id,created_at) SELECT id,now() FROM catalog.app_user WHERE username='requester_a'");
                 sql.executeUpdate("INSERT INTO catalog.change_revision(request_id,revision_number,state,reason,created_at) SELECT id,1,'DRAFT','재시작 보존 확인',now() FROM catalog.change_request");
                 sql.executeUpdate("UPDATE catalog.change_request SET current_revision_id=(SELECT id FROM catalog.change_revision WHERE request_id=change_request.id)");
+                try (var insert = connection.prepareStatement("INSERT INTO catalog.revision_workspace(revision_id,file_id,filename,original,original_sha256,validation_json,uploaded_at) SELECT id,?::uuid,'preserved.csv',?,?,?,now() FROM catalog.change_revision")) {
+                    insert.setString(1, "00000000-0000-0000-0000-000000000003");
+                    insert.setBytes(2, "원본 보존".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    insert.setString(3, "a".repeat(64));
+                    insert.setString(4, "{\"validationId\":\"preserved\"}");
+                    insert.executeUpdate();
+                }
             }
         }
         try (var postgres = start()) {
@@ -39,6 +46,12 @@ class PersistentDatabaseTest {
                     result.next();
                     assertThat(result.getLong(1)).isEqualTo(17000);
                     assertThat(result.getLong(2)).isEqualTo(1);
+                }
+                try (var result = sql.executeQuery("SELECT filename,original,validation_json FROM catalog.revision_workspace")) {
+                    assertThat(result.next()).isTrue();
+                    assertThat(result.getString(1)).isEqualTo("preserved.csv");
+                    assertThat(result.getBytes(2)).isEqualTo("원본 보존".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    assertThat(result.getString(3)).isEqualTo("{\"validationId\":\"preserved\"}");
                 }
                 try (var result = sql.executeQuery("SELECT (SELECT count(*) FROM catalog.app_user), (SELECT count(*) FROM catalog.change_revision), current_setting('fsync')")) {
                     result.next();
