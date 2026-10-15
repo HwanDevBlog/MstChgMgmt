@@ -1,69 +1,138 @@
-# MstChgMgmt — 장비 카탈로그 기준정보 변경·검증·승인
+# MstChgMgmt
 
-Master Change Management의 축약명. 기존 InvMgmt와 같은 명명 방식으로 정했다.
-가상 장비 대여업체의 카탈로그 변경을 검토하고 승인하는 토이 프로젝트다.
-현재 **2단계: 세션 로그인·기준정보 조회·본인 임시 요청 생성/조회·소유권 통제**까지 구현했다.
+장비 기준정보의 일괄 변경 과정에서 발생하는 CSV 검증, 변경 요청의 소유권과 승인 대상의 일치 문제를 다루는 토이 프로젝트입니다.
 
-## 보장하려는 규칙
+단순 CRUD보다 다음 문제를 코드와 테스트로 확인하는 데 초점을 맞췄습니다.
 
-최종 목표는 승인 요청이 참조한 제출본과 실제 DB 반영 내용의 일치다.
-제출본 고정, 구 리비전 승인 차단, 자기 승인 금지, 서버 권한 검사로 검증할 예정이다.
+- 잘못된 형식이나 중복 장비 코드가 포함된 CSV를 찾아내는가
+- 로그인한 사용자만 자신의 변경 요청을 작성하고 조회할 수 있는가
+- 계정이 비활성화되거나 역할이 회수되면 기존 세션의 접근도 차단되는가
+- 승인자가 검토한 제출본과 실제 DB에 반영되는 내용이 일치하는가
 
-현재 코드와 테스트가 확인하는 범위:
+현재는 세션 로그인, 기준정보 조회, 본인 임시 요청 생성·조회까지 구현했습니다. CSV 검증과 리비전 권한 정책은 도메인 테스트로 확인했으며, 파일 업로드·제출·승인 API는 후속 구현 항목입니다.
 
-- UTF-8·BOM, 1MiB·200레코드 제한, 고정 CSV 필드·파일 내 중복 검증과 원본 바이트 SHA-256.
-- 활성 계정·역할·소유권·현재 리비전·상태를 조합한 도메인 정책.
-- 세션 로그인·로그아웃·CSRF 검사. 로그인 후 세션 ID와 CSRF 토큰 갱신.
-- 비활성 계정 차단, 로그인 이후 비활성화·역할 회수의 다음 API 요청 반영.
-- 세 역할의 현재 기준정보 조회, 요청자의 본인 DRAFT 생성·목록·상세 조회.
-- 다른 요청자의 ID로 상세를 조회하면 403. 입력 requesterId를 보내면 400.
-- 스키마 소유자와 앱 DB 계정 분리, 실제 앱 연결 사용자의 권한 제한.
-- 시연 DB 종료·재시작 후 기준정보·버전·임시 요청 보존 및 초기 계정 중복 생성 방지.
+## 구현 범위
 
-자기 승인·구 리비전 차단은 현재 도메인 정책 테스트다. 승인 API·제출본·내용 해시는 아직 구현하지 않았다.
+- 세션 기반 로그인·로그아웃과 CSRF 검사
+- 로그인 시 세션 ID 갱신과 로그인·로그아웃 후 CSRF 토큰 갱신
+- 비활성 계정 차단과 API 요청 시 계정 상태·역할 재확인
+- 요청자·승인자·조회자의 현재 장비 기준정보 조회
+- 요청자의 본인 임시 요청 생성·목록·상세·리비전 조회
+- 서버에서 인증 사용자와 요청 소유권 검사
+- CSV 형식·필드·파일 내 중복 검증과 원본 바이트 SHA-256 계산
+- 리비전 상태·역할·소유권에 따른 도메인 접근 정책
+- 스키마 소유자와 앱 DB 계정의 권한 분리
+- 종료·재실행 후에도 유지되는 로컬 PostgreSQL 데이터
+- React 기반 로그인·기준정보·내 변경 요청 화면
 
-## 설계 판단
+## 핵심 설계
 
-독립적인 가상 업무 규칙과 후속 제출본 계약은 [설계 문서](docs/DESIGN.md)에 정의했다.
-InvMgmt처럼 main 브랜치·com.hwandevblog 그룹·한국어 주석과 커밋 메시지를 사용한다.
-Java 21·Spring Boot 3.5.16·JPA·Gradle Wrapper, React 18.3.1·TypeScript 7.0.2·Vite 8.2.2를 공통으로 사용한다.
+### 변경 요청과 리비전
 
-Spring Security의 기본 세션 CSRF 저장소를 유지하고 조회 API에서 받은 마스킹 토큰을 변경 요청에 보낸다.
-각 변경 요청 전에 토큰을 조회해 로그인·로그아웃 뒤 폐기된 토큰을 재사용하지 않는다.
-HTTP URL 권한 검사와 서비스의 객체 소유권 검사를 함께 적용한다.
-계정 상태·역할을 API 권한 검사 전에 다시 읽어 세션의 과거 권한으로 작업하지 않게 한다.
+`ChangeRequest`는 작성자와 현재 리비전을 가리키고, `ChangeRevision`은 리비전 번호, 상태, 변경 사유를 보관합니다. 요청과 첫 `DRAFT` 리비전은 하나의 트랜잭션에서 생성합니다.
 
-CSV의 따옴표·쉼표는 Commons CSV로 파싱한다. 빈칸이나 대소문자를 자동 보정하지 않는다.
-금액·버전은 JSON 문자열로 전달하고 화면에서 bigint로 금액을 표시해 정수 정밀도를 보존한다.
-요청과 첫 DRAFT 리비전은 한 트랜잭션에서 생성하며, 현재 포인터가 다른 요청의 리비전을 가리키는 경우 DB FK가 차단한다.
+현재 리비전 포인터에는 요청 ID와 리비전 ID를 함께 검사하는 복합 외래 키를 적용했습니다. 다른 요청의 리비전이 현재 리비전으로 지정되는 경우 DB에서 차단합니다.
 
-마이그레이션은 소유자 권한 연결에서 수행하고 앱 연결의 Hibernate는 스키마 검증만 한다.
-Docker 없는 테스트 DB는 임시 디렉터리를 사용하고, 시연 DB는 프로젝트 `.local/postgres-data`를 보존한다.
+도메인 정책에서 정의한 상태 흐름은 다음과 같습니다.
 
-## 재현 절차
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT
+    DRAFT --> SUBMITTED: 제출
+    SUBMITTED --> APPLIED: 승인과 DB 반영
+    SUBMITTED --> REJECTED: 반려
+    SUBMITTED --> WITHDRAWN: 철회
+```
 
-Java 21 JDK, Node 24, npm이 필요하다. Docker Desktop이나 별도 PostgreSQL 설치는 필요하지 않다.
-첫 실행에는 공식 Gradle 배포본·Maven Central·npm 패키지 다운로드를 위한 네트워크가 필요하다.
+반려·철회한 리비전은 보존하고 다시 작성할 때 새 `DRAFT` 리비전을 생성하도록 설계했습니다. `APPLIED`는 최종 상태입니다. 현재 API는 첫 `DRAFT` 생성까지 제공하며, 제출·승인·반려·철회·새 리비전 생성은 아직 연결하지 않았습니다.
 
-Windows PowerShell:
+### 인증과 객체 접근 권한
+
+- 사용자 ID는 인증된 세션에서 가져옵니다. 요청 본문으로 작성자를 지정할 수 없습니다.
+- URL별 역할 검사와 서비스의 객체 소유권 검사를 함께 적용합니다.
+- 다른 요청자의 임시 요청을 조회하면 `403`, 생성 요청에 `requesterId`를 보내면 `400`으로 처리합니다.
+- API 권한 검사 전에 계정 상태와 역할을 DB에서 다시 읽어 세션의 과거 권한으로 접근하지 않게 합니다.
+- 화면 메뉴는 역할에 맞게 표시하고, 계정 전환·인증 만료 시 이전 목록과 상세 데이터를 비웁니다.
+- Spring Security의 세션 CSRF 저장소를 사용하며, 프론트엔드는 변경 요청 전에 마스킹 토큰을 새로 조회합니다.
+
+자기 승인과 구 리비전 접근 차단은 현재 도메인 정책 테스트로 확인했습니다. 승인 API에서의 통제는 후속 구현·검증 항목입니다.
+
+### CSV 검증과 정수 정밀도
+
+Commons CSV로 따옴표와 쉼표를 처리하며, 빈칸이나 대소문자를 자동 보정하지 않습니다. UTF-8과 BOM, 1MiB·200레코드 제한, 고정 헤더, 필드 형식과 파일 내 중복 장비 코드를 검증합니다.
+
+CSV 원본 바이트의 SHA-256은 파일 식별에 사용합니다. 승인할 변경 내용을 고정하는 내용 해시는 별도 계약이며 아직 구현하지 않았습니다.
+
+장비 금액과 버전은 JSON 문자열로 전달합니다. 프론트엔드는 `bigint`로 금액을 표시해 JavaScript 숫자 변환으로 정수 정밀도가 손실되는 것을 막습니다.
+
+### DB 계정과 로컬 데이터 보존
+
+- Flyway 마이그레이션은 별도 소유자 권한 연결로 처리합니다.
+- 앱은 제한된 `mcr_app` 계정으로 접속하고 Hibernate `validate`로 스키마를 검사합니다.
+- 앱 계정의 계정 정보 수정, 스키마 DDL과 소유자 역할 전환은 허용하지 않습니다.
+- 테스트 DB는 임시 디렉터리, 시연 DB는 프로젝트의 `.local/postgres-data`를 사용합니다.
+- 시연 DB는 데이터 삭제를 끄고 `fsync`를 켜며, 같은 디렉터리의 중복 실행은 파일 잠금으로 차단합니다.
+
+후속 제출본 계약과 가상 업무 규칙은 [설계 문서](docs/DESIGN.md)에 정리했습니다.
+
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| Language | Java 21 |
+| Backend | Spring Boot 3.5, Spring MVC, Spring Data JPA, Spring Security |
+| Query | Hibernate |
+| Database | PostgreSQL 16, Flyway |
+| CSV | Apache Commons CSV |
+| Test | JUnit 5, AssertJ, Spring Boot Test, Zonky Embedded PostgreSQL, Vitest, Testing Library, Playwright |
+| Frontend | React 18, TypeScript, Vite |
+| Build / CI | Gradle Wrapper, npm / GitHub Actions 미구성 |
+
+## 실행 방법
+
+Java 21과 Node.js 24가 필요합니다. 별도의 PostgreSQL이나 컨테이너 없이 로컬 실행용 임베디드 PostgreSQL이 함께 시작됩니다. 최초 의존성 설치에는 네트워크가 필요합니다.
+
+Windows에서 전체 서버 테스트 실행:
 
 ```powershell
-cd C:\toyProject\workspace\MstChgMgmt\frontend
+.\scripts\dev.ps1 -Tasks test
+```
+
+프론트엔드 의존성 설치·빌드와 애플리케이션 실행(프로젝트 루트 기준):
+
+```powershell
+cd frontend
 npm ci
 npm run build
 cd ..
 .\scripts\dev.ps1 -Tasks localRun
 ```
 
-[로컬 화면](http://127.0.0.1:18081)에 접속한다. 종료는 실행 터미널에서 Ctrl+C를 누른다.
-서버는 127.0.0.1:18081, 시연 PostgreSQL은 127.0.0.1:15433에서 실행한다.
-같은 데이터 디렉터리의 중복 실행은 파일 잠금으로 차단한다.
+`localRun`은 최초 실행 시 시연 계정 7개와 장비 3개를 생성합니다. 이후에는 기존 요청과 장비 값을 보존하고 초기 데이터를 덮어쓰지 않습니다. 종료는 실행 터미널에서 `Ctrl+C`를 사용합니다. DB·캐시·빌드 결과는 Git에서 제외합니다.
 
-이 PC에서 npm이 PATH에 없다면 `C:\toyProject\tools\node`를 현재 터미널 PATH에 추가한다.
-dev.ps1은 JAVA_HOME 또는 PATH의 javac를 사용하고, 없으면 Eclipse의 Java 21 번들을 찾는다.
-다른 PC에서는 JAVA_HOME을 Java 21 JDK로 지정한다. 글로벌 설정은 바꾸지 않는다.
+`dev.ps1`은 `JAVA_HOME` 또는 PATH의 JDK를 사용하며, 이 PC에서는 Eclipse의 Java 21 번들도 탐색합니다. 다른 PC에서는 `JAVA_HOME`을 Java 21 JDK로 지정하세요. Windows Gradle 캐시 이동 오류를 우회하는 옵션을 실행 프로세스에만 적용합니다.
 
-초기 시연 계정의 공통 비밀번호는 **`LocalDemo!2026`**이다.
+DBeaver 연결 설정(애플리케이션 실행 중):
+
+| 항목 | 값 |
+|---|---|
+| 연결 이름 | MstChgMgmt 로컬 |
+| Host | 127.0.0.1 |
+| Port | 15433 |
+| Database | catalog_review |
+| Username | mcr_app |
+| Password | local-app-only |
+| Schema | catalog |
+
+이 접속 정보는 로컬 개발용 Embedded PostgreSQL 구성입니다. 루프백 주소에만 바인딩하며, 로컬 DB는 trust 인증을 사용합니다. 앱 계정의 권한 제한이 로컬 관리자 접근까지 막는다는 뜻은 아닙니다. 자동 테스트는 별도의 임시 DB를 사용합니다.
+
+실행 후 확인할 수 있는 주소:
+
+- 웹 화면: `http://127.0.0.1:18081`
+- 로그인 사용자 조회: `http://127.0.0.1:18081/api/auth/me`
+- 기준정보 조회: `http://127.0.0.1:18081/api/equipment`
+
+시연 계정의 공통 비밀번호는 **`LocalDemo!2026`**입니다.
 
 | 계정 | 역할 |
 |---|---|
@@ -73,57 +142,98 @@ dev.ps1은 JAVA_HOME 또는 PATH의 javac를 사용하고, 없으면 Eclipse의 
 | dual | 요청자 + 승인자 |
 | inactive | 비활성 계정, 로그인 차단 확인용 |
 
-초기 장비는 EQ-CAM100, EQ-MIC100, EQ-LGT100 세 개다.
-요청자 계정으로 로그인하면 임시 요청을 만들고 조회할 수 있다.
-계정·장비 초기 데이터는 빈 DB에 한 번만 넣고 재시작 시 사용자 변경값을 덮어쓰지 않는다.
-샘플 CSV [samples/catalog-create.csv](samples/catalog-create.csv)는 다음 업로드 단계에서 사용한다.
+요청자로 로그인하면 현재 장비를 조회하고 변경 사유를 입력해 임시 요청을 저장할 수 있습니다. 내 변경 요청 화면에서 목록과 상세를 확인합니다. 승인자 계정의 실제 승인 처리는 아직 제공하지 않습니다.
 
-프론트엔드 개발 서버를 별도로 쓰려면 백엔드 실행 후 frontend에서 `npm run dev`를 실행한다.
-127.0.0.1:5174의 Vite가 `/api`를 백엔드로 프록시하므로 별도 CORS 허용이 필요하지 않다.
-프론트엔드 빌드 후 `test,bootJar`로 JAR을 만들면 정적 화면도 함께 포함된다.
-일반 JAR 실행은 이미 준비된 DB를 필요로 하며, Embedded PostgreSQL은 테스트/로컬 실행기에만 포함된다.
-
-Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gradle-user-home`을 사용한다.
-이 Windows PC에서 확인한 캐시 이동 오류의 우회를 위해 Gradle Arguments와 JVM Arguments에
-`-Dorg.gradle.internal.instrumentation.agent=false`를 지정한다.
-로컬 `.settings/org.eclipse.buildship.core.prefs`에 적용했으며 `.settings`는 커밋하지 않는다.
-설정이나 의존성 변경 후 F5 → Gradle → Refresh Gradle Project를 실행한다.
-Eclipse에서 직접 실행할 때는 테스트 소스의 `LocalApplication`을 Java Application으로 실행한다.
-
-## 테스트·DB 결과
-
-검증일: 2026-10-15. 확정된 결과와 다음 작업은 [인계 문서](docs/HANDOFF.md)에 기록했다.
+프론트엔드 개발 서버 실행:
 
 ```powershell
-.\scripts\dev.ps1 -Tasks test,bootJar
 cd frontend
+npm run dev
+```
+
+백엔드가 `18081` 포트에서 실행 중이면 프론트엔드의 `/api` 요청을 백엔드로 전달합니다. 프론트엔드 주소는 `http://127.0.0.1:5174`입니다.
+
+프론트엔드 타입 검사, 테스트, 빌드:
+
+```powershell
+npm run typecheck
 npm run test:run
-# localRun 또는 Vite가 실행 중이어야 한다. 설치된 Chrome을 사용한다.
+npm run build
+```
+
+실행 중인 로컬 서버에 연결하는 Chrome E2E 테스트(frontend 디렉터리 기준):
+
+```powershell
 $env:MCR_BASE_URL = 'http://127.0.0.1:18081'
 npm run test:e2e
 ```
 
+설치된 Chrome을 사용하며, E2E에서 생성한 검증용 임시 요청은 연결된 시연 DB에 남습니다.
+
+프론트엔드를 빌드한 뒤 프로젝트 루트에서 `.\scripts\dev.ps1 -Tasks test,bootJar`를 실행하면 정적 화면이 포함된 JAR을 생성합니다. 일반 JAR 실행에는 별도로 준비된 DB 연결 설정이 필요하며, Embedded PostgreSQL은 운영 JAR에 포함되지 않습니다.
+
+Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gradle-user-home`을 사용합니다. 이 PC의 Gradle Arguments와 JVM Arguments에는 `-Dorg.gradle.internal.instrumentation.agent=false`를 지정합니다. 의존성 변경 후 F5 → Gradle → Refresh Gradle Project를 실행하고, 직접 실행할 때는 테스트 소스의 `LocalApplication`을 Java Application으로 실행합니다.
+
+## 주요 API
+
+| Method | URL | 설명 |
+|---|---|---|
+| `GET` | `/api/auth/csrf` | 변경 요청에 사용할 CSRF 토큰 조회 |
+| `POST` | `/api/auth/login` | 아이디·비밀번호로 세션 로그인 |
+| `POST` | `/api/auth/logout` | 세션 로그아웃 |
+| `GET` | `/api/auth/me` | 로그인 사용자와 역할 조회 |
+| `GET` | `/api/equipment` | 현재 장비 기준정보 조회 |
+| `POST` | `/api/requests` | 본인 임시 요청 생성 |
+| `GET` | `/api/requests/mine` | 본인 요청 목록 조회 |
+| `GET` | `/api/requests/{requestId}` | 접근 정책에 따른 요청 상세 조회 |
+| `GET` | `/api/requests/{requestId}/revisions/{revisionId}` | 접근 정책에 따른 리비전 상세 조회 |
+
+로그인은 form 형식의 `username`·`password`, 임시 요청 생성은 JSON 형식의 `reason`을 받습니다. 모든 `POST` 요청은 CSRF 토큰이 필요합니다.
+
+## 테스트에서 확인하는 내용
+
+- CSV 인코딩·크기·레코드 수·헤더·필드와 파일 내 중복을 검증하는지
+- 리비전 상태·역할·소유권을 조합한 도메인 정책이 허용되지 않은 접근을 거절하는지
+- 세션 로그인·로그아웃, CSRF 검사와 세션 ID 갱신이 실제 HTTP에서 동작하는지
+- 비활성 계정과 로그인 이후 역할 회수가 다음 API 요청에 반영되는지
+- 타인의 임시 요청 조회와 작성자 ID 조작이 서버에서 차단되는지
+- 앱 DB 계정이 계정 정보를 수정하거나 스키마를 생성하고 소유자 역할로 전환할 수 없는지
+- 실제 PostgreSQL 종료·재시작 후 장비 값·버전·임시 요청과 초기 계정 수가 유지되는지
+- 프론트엔드가 CSRF 토큰을 갱신하고 작성자 ID 없이 요청을 전송하는지
+- 큰 정수 금액이 화면에서 정밀도 손실 없이 표시되는지
+- 실제 Chrome에서 로그인·임시 저장·새로고침·계정 전환 후 본인 데이터만 표시되는지
+- 조회자가 화면을 우회해 API를 직접 호출해도 임시 요청을 생성할 수 없는지
+
+2026-10-15 기준 검증 결과:
+
 | 구분 | 검증 결과 |
 |---|---|
 | CSV·권한·상태 단위 테스트 | 56건 통과 |
-| 실제 PostgreSQL 연결 HTTP 권한·인증 테스트 | 20건 통과 |
+| 실제 PostgreSQL 연결 HTTP 인증·권한 테스트 | 20건 통과 |
 | 실제 PostgreSQL 종료·재시작 보존 테스트 | 1건 통과 |
 | 프론트엔드 UI·CSRF 전송·bigint 표시 테스트 | 6건 통과 |
-| 설치된 Chrome에서 실제 서버에 연결한 E2E | 2건 통과 |
-| 소유권 검사 제거 실험 | 타인 상세 조회가 200이 되어 403을 기대한 대표 API 테스트 실패. 복원 후 전체 서버 테스트 통과 |
-| DB 사용자·권한 | mcr_app, 비슈퍼유저·DB 생성 불가. 계정 UPDATE·스키마 DDL·소유자 역할 전환 거부 |
-| 시연 DB 보존 | 변경한 금액·버전·임시 요청 유지, 초기 계정 7개 유지, fsync=on 확인 |
+| 실제 서버에 연결한 Chrome E2E | 2건 통과 |
 
-서버 보고서: `build/reports/tests/test/index.html`.
-브라우저 캡처: `frontend/test-results/requester-desktop.png`, `viewer-mobile.png`.
-보고서·캡처·DB·캐시·bin은 커밋하지 않는다.
+소유권 검사 제거 실험에서는 타인 상세 조회가 `200`이 되어 `403`을 기대한 대표 API 테스트가 실패했습니다. 원본 복원 후 전체 서버 테스트가 다시 통과했습니다. `SUBMITTED`·`APPLIED` 조회 권한 테스트는 DB에 준비한 상태를 사용하며, 실제 제출·승인 흐름을 검증한 결과는 아닙니다.
 
-## 한계
+서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions 검증은 아직 구성하지 않았습니다.
 
-현재는 로그인·조회·임시 요청 생성까지 제공한다. CSV 업로드·DB 존재 검증·전후 비교·제출본 고정·승인·반영·이력은 후속 단계다.
-SUBMITTED/APPLIED 조회 권한 테스트의 상태는 DB fixture이며 실제 제출·승인을 구현했다는 증거가 아니다.
-락·UNIQUE 경합·전체 반영 롤백·승인 응답 유실 재요청·화면 제출 묶음 일치·GitHub Actions는 아직 검증하지 않았다.
-파일 상한은 성능 측정값이 아니다. 측정하지 않은 성능·안정성·운영 효과를 주장하지 않는다.
-내용 해시는 전자서명이나 읽음 증명이 아니다. 동일인이 여러 계정을 쓰는 것은 통제 범위 밖이다.
-Embedded PostgreSQL은 로컬 개발용 trust 인증 환경이다. 앱 계정 권한 제한이 로컬 관리자 접근까지 막는다는 뜻은 아니다.
-운영 배포·원격 저장소 생성·push·외부 공개는 진행하지 않았다.
+## 개발 및 검증 방식
+
+가상 장비 대여 조직을 기준으로 업무 규칙과 리비전·권한 정책을 정의했습니다. 구현 과정에서 AI 개발 도구를 보조적으로 활용했으며, 도메인 단위 테스트, 실제 PostgreSQL 기반 HTTP·권한·재시작 테스트와 프론트엔드 자동화 테스트로 동작을 확인했습니다.
+
+도메인 정책 테스트와 실제 API·DB 검증의 범위를 구분해 기록합니다. 확정된 검증 결과와 다음 작업은 [인계 문서](docs/HANDOFF.md)에 정리했습니다.
+
+## 현재 범위 밖의 항목
+
+- CSV 업로드 API와 DB 존재 검증·변경 전후 비교
+- 제출본 고정·내용 해시와 제출 API
+- 승인과 DB 반영의 단일 트랜잭션 처리
+- 반려·철회·새 리비전 생성과 처리 이력 화면
+- 동시 승인·UNIQUE 경합·전체 반영 롤백과 응답 유실 후 재요청 검증
+- GitHub Actions 백엔드·프론트엔드 검증
+- OpenAPI 문서와 Swagger UI
+- 회원 가입·계정 관리 화면과 운영 환경 배포 구성
+- 컨테이너 런타임을 이용한 실행 검증
+
+다음 단계에서는 CSV 업로드·행 검증·변경 전후 비교를 연결합니다. 파일 상한은 성능 측정값이 아니며, 원본 파일 해시는 전자서명이나 승인 증명이 아닙니다.
