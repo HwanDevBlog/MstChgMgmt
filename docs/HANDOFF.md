@@ -1,14 +1,15 @@
-# 작업 인계 — 승인·반영 단계 완료 (2026-10-15)
+# 작업 인계 — CI 구성·시연 안내 완료, 원격 CI 확인 대기 (2026-10-15)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `a7e7c83`(불변 제출본 및 내용 해시와 변경 요청 제출 구현), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main 해시 일치를 확인했다. 승인·반영 단계 변경은 미커밋·미push.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `782bc19`(기준정보 승인 반영 및 반려·철회와 리비전 이력 구현), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main과 전체 해시 일치를 확인했다. CI 설정·시연 문서 변경은 미커밋·미push.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
 - 4단계 완료: 임시 사유 수정·내용 해시·불변 제출본·검토 묶음 대조·SUBMITTED 제출. 이후 5단계에서 승인·반영·반려·철회·새 리비전을 연결했다.
-- 5단계 완료: 승인 원자 반영·실제 변경 이력·동시 결정·멱등 재요청·반려·철회·새 리비전과 역할별 화면. CI는 미구성.
+- 5단계 완료: 승인 원자 반영·실제 변경 이력·동시 결정·멱등 재요청·반려·철회·새 리비전과 역할별 화면.
+- 6단계 로컬 구성 완료: CI 설정과 시연 안내. 실제 GitHub 실행은 설정 커밋·push 후 확인한다.
 - 기존 참고 자료는 읽기 전용으로 확인했으며 프로젝트로 복사하지 않았다.
 - 회사 저장소·DB는 조회하지 않았다. 전역 Git 설정은 바꾸지 않았다.
 
@@ -92,14 +93,13 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**6단계: GitHub Actions·최종 검증·시연 안내**를 같은 채팅에서 진행한다.
+**원격 CI 첫 실행 확인**을 같은 채팅에서 이어간다.
 
-1. 사용자 커밋 완료 통보 시 로컬 HEAD와 GitHub main을 먼저 확인한다. 현재 미커밋 파일을 임의로 커밋하지 않는다.
-2. 기존 InvMgmt의 개인 프로젝트 CI 구성은 읽기 전용으로 참고해 양식을 맞춘다. MstChgMgmt에 backend-ci·frontend-ci를 추가한다.
-3. Java 21·PostgreSQL 16 임베디드 테스트와 Node 24 타입 검사·UI 테스트·빌드를 CI에 연결하고 실제 GitHub 실행 결과를 확인한 뒤 배지를 넣는다.
-4. GitHub fine-grained 토큰에 Contents 외 Workflows 쓰기 권한이 필요한지 실제 push 오류/설정에 따라 안내한다. 토큰 값을 채팅으로 받지 않는다.
-5. 시연 순서·권한·버전 충돌·반려/철회/새 리비전·DB 조회를 README와 시연 문서에 정리한다. 구현 범위 밖 항목을 임의로 늘리지 않는다.
-6. 최종 검증은 새 변경과 미해결 위험에 비례해 수행하고 이미 통과한 테스트를 불필요하게 반복하지 않는다.
+1. 사용자 커밋 완료 통보 시 로컬 HEAD와 GitHub main을 조회한다. 사용자 요청 없이 커밋·push하지 않는다.
+2. 해당 커밋의 Backend CI·Frontend CI 결과를 확인한다. 실패하면 해당 로그와 원인을 좁혀 수정한다.
+3. 실제 두 작업 성공 확인 후 README 배지를 추가한다. 로컬 결과를 원격 CI 성공으로 표현하지 않는다.
+4. 워크플로 push 권한 오류가 나면 기존 fine-grained 토큰의 MstChgMgmt 접근과 Workflows 쓰기 권한을 확인하도록 안내한다. 토큰 값은 받지 않는다.
+5. 불필요한 전체 재검증이나 임의의 기능 확장은 하지 않는다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -307,3 +307,13 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - 캡처 frontend/test-results/approval-desktop.png, applied-history-mobile.png는 Git 제외. Playwright 재실행 시 test-results는 정리되므로 이전 재시작 확인 캡처는 남지 않을 수 있다.
 - README·DESIGN·HANDOFF는 단계 완료 시 한 번 갱신했다. InvMgmt와 회사 저장소·DB는 이번 단계에서 수정·조회하지 않았다.
 - 커밋 메시지: 기준정보 승인 반영 및 반려·철회와 리비전 이력 구현. 이전 gradlew.bat 줄바꿈 변경은 제외한다.
+
+## 6단계 로컬 구성·검증 완료 — 2026-10-15
+
+- 신규: .github/workflows/backend-ci.yml, frontend-ci.yml, docs/DEMO.md. 변경: README.md, docs/DESIGN.md, docs/HANDOFF.md. 총 6개.
+- InvMgmt의 개인 CI 설정을 읽기 전용으로 참고해 동일한 이벤트·도구 버전·명령 양식으로 구성했다. 업무 코드는 복사하지 않았다.
+- Node 24에서 npm ci 성공(감사 취약점 0), typecheck 성공, UI 17건 통과, build 성공.
+- 기존 서버 테스트 XML 원본에서 117건·실패/오류/건너뜀 0 확인. 서버 소스 변경이 없어 재실행하지 않았다. Chrome도 재실행하지 않았다.
+- CI 파일은 기존 InvMgmt 템플릿과 바이트 일치 및 명령·대상 경로를 확인했다. 별도 YAML 파서 검증은 미실시(로컬 PyYAML 없음). GitHub 실행 검증은 다음 push 후 진행한다.
+- DB 변경 없음. 기존 V1~V4·시연 데이터 보존. 기존 gradlew.bat 줄바꿈 변경은 이번 커밋 대상 제외.
+- 커밋 메시지: GitHub Actions 검증 구성 및 시연 안내 정리.

@@ -130,7 +130,7 @@ CSV 원본 바이트의 SHA-256은 파일 식별에 사용합니다. 변경 내�
 | CSV | Apache Commons CSV |
 | Test | JUnit 5, AssertJ, Spring Boot Test, Zonky Embedded PostgreSQL, Vitest, Testing Library, Playwright |
 | Frontend | React 18, TypeScript, Vite |
-| Build / CI | Gradle Wrapper, npm / GitHub Actions 미구성 |
+| Build / CI | Gradle Wrapper, npm / GitHub Actions |
 
 ## 실행 방법
 
@@ -312,7 +312,7 @@ Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gra
 
 소유권 검사 제거 실험에서는 타인 상세 조회가 `200`이 되어 `403`을 기대한 대표 API 테스트가 실패했습니다. 원본 복원 후 전체 서버 테스트가 다시 통과했습니다. 실제 제출·승인·반영·반려·철회·새 리비전 생성은 API와 브라우저에서 확인했습니다. 계정 전환 응답 가드를 제거하면 타인 요청 상세가 다시 나타나며 회귀 테스트가 실패했고, 원본 복원 후 프론트엔드 전체 테스트가 통과했습니다.
 
-서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions 검증은 아직 구성하지 않았습니다.
+서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions는 main push와 main 대상 pull request에서 백엔드·프론트엔드를 각각 검증하도록 구성했습니다. 백엔드는 Java 21에서 PostgreSQL 통합 테스트를 포함한 전체 서버 테스트를 실행하고, 프론트엔드는 Node 24에서 npm ci·타입 검사·UI 테스트·빌드를 실행합니다. Chrome E2E와 재시작 시연은 로컬 검증이며 CI 실행에는 포함하지 않았습니다. 최초 GitHub 실행 결과는 이 설정을 커밋·push한 뒤 확인합니다.
 
 ## 개발 및 검증 방식
 
@@ -322,9 +322,8 @@ Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gra
 
 ## 현재 범위 밖의 항목
 
-- GitHub Actions 백엔드·프론트엔드 검증
 - OpenAPI 문서와 Swagger UI
 - 회원 가입·계정 관리 화면과 운영 환경 배포 구성
 - 컨테이너 런타임을 이용한 실행 검증
 
-다음 단계에서는 GitHub Actions와 최종 검증·시연 안내를 정리합니다. 파일 상한은 성능 측정값이 아니며, 원본 파일 해시는 전자서명이나 승인 증명이 아닙니다.
+역할별 시연, 충돌 재현과 읽기 전용 DB 확인 순서는 [시연 안내](docs/DEMO.md)에 정리했습니다. 파일 상한은 성능 측정값이 아니며, 원본 파일 해시는 전자서명이나 승인 증명이 아닙니다.
