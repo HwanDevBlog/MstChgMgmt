@@ -1,0 +1,34 @@
+server:
+  address: 127.0.0.1
+  port: 18081
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+
+spring:
+  datasource:
+    url: ${MCR_DB_URL:jdbc:postgresql://localhost:15433/catalog_review}
+    username: ${MCR_DB_USER:mcr_app}
+    password: ${MCR_DB_PASSWORD:}
+    hikari:
+      connection-init-sql: SET search_path TO catalog
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: catalog
+  # 마이그레이션은 로컬 실행기와 테스트 부트스트랩의 별도 소유자 연결에서 수행한다.
+  flyway:
+    enabled: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+
+logging:
+  level:
+    org.hibernate.orm.jdbc.bind: OFF

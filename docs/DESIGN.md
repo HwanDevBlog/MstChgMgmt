@@ -1,6 +1,6 @@
 # MstChgMgmt — 장비 카탈로그 변경 검토 시스템 설계 v1
 
-2026-10-14, 1단계 확정. 단일 가상 장비 대여 조직의 카탈로그만 다룬다.
+2026-10-14 규칙 확정, 2026-10-15 2단계 구현 완료. 단일 가상 장비 대여 조직의 카탈로그만 다룬다.
 대여·반납·재고·주문·결제는 구현하지 않는다. 규칙과 예제는 이 프로젝트에서 독립적으로 정의했다.
 
 ## 1. 보장할 규칙과 현재 구현 범위
@@ -10,9 +10,9 @@
 해시는 전자서명이나 사용자가 내용을 실제로 읽었다는 증거가 아니다.
 계정 단위 직무 분리이며, 한 사람이 두 계정을 쓰는 것까지 차단하지 않는다.
 
-현재 구현: CSV 형식·필드 검증, 원본 바이트 SHA-256, 권한·상태 정책, 단위 테스트, Spring Boot 진입점.
-현재 미구현: HTTP API, 로그인, DB, 변경 비교, 제출본, 승인 트랜잭션, React 화면.
-따라서 현재 정책 테스트를 서버 권한 API 검증이나 DB 무결성 검증으로 표현하지 않는다.
+현재 구현: CSV 검증·원본 해시·권한/상태 도메인, 세션 로그인·CSRF, PostgreSQL/Flyway, 기준정보 조회, 본인 DRAFT 생성/조회, React 화면.
+현재 미구현: CSV 업로드·DB 존재 검증·전후 비교, 불변 제출본, 승인 트랜잭션과 변경 이력.
+도메인 정책 테스트와 실제 PostgreSQL HTTP 권한 테스트를 구분한다. 자기 승인·구 리비전 정책의 승인 API 연결은 후속 단계다.
 
 ## 2. CSV 규칙 — catalog-v1
 
@@ -135,8 +135,8 @@ CREATE 중복 확인+UNIQUE 제약 → 실제 변경·이력 저장 → APPLIED 
 
 ## 7. 구현 순서와 검증 경계
 
-1. 규칙·권한·상태 도메인과 단위 테스트 — 이번 단계.
-2. Spring Security 세션·CSRF, Flyway, DB 역할 분리, 초기 계정, 기준정보·내 요청 조회, React 로그인·조회.
+1. 규칙·권한·상태 도메인과 단위 테스트 — 완료.
+2. Spring Security 세션·CSRF, Flyway, DB 역할 분리, 초기 계정, 기준정보·내 요청 조회, React 로그인·조회 — 완료.
 3. 업로드·원본 보존·DB 검증·전후 비교, 미리보기 이후 변경 감지.
 4. 불변 제출본·내용 해시·철회·반려·새 리비전.
 5. 승인 원자 반영·이력·버전 충돌·멱등 재시도.
@@ -157,3 +157,58 @@ MyBatis·Spring Batch·범용 결재 엔진은 현재 필요한 문제가 없어
 - [Commons CSV API](https://commons.apache.org/proper/commons-csv/apidocs/)
 - [Embedded PostgreSQL](https://github.com/zonkyio/embedded-postgres)
 - [Gradle Windows 캐시 이동 이슈](https://github.com/gradle/gradle/issues/31438)
+
+## 9. 2단계 구현 계약 — 2026-10-15
+
+Spring Security의 기본 세션 CSRF 저장소와 마스킹 처리기를 유지한다.
+GET /api/auth/csrf에서 현재 마스킹 토큰과 헤더 이름을 반환하고 클라이언트는 변경 요청마다 다시 조회한다.
+로그인 성공은 204, 잘못된 인증은 401, CSRF/권한 위반은 403이다.
+로그인 시 세션 ID를 교체하며 이전 CSRF 토큰을 폐기한다. 세션 쿠키는 HttpOnly·SameSite=Lax다.
+API마다 활성 상태와 역할을 DB에서 다시 읽고, URL 권한 검사 전에 인증 정보를 갱신한다.
+
+| API | 적용 규칙 |
+|---|---|
+| GET /api/auth/csrf | 익명 허용, no-store, 세션 마스킹 CSRF 토큰 |
+| POST /api/auth/login | CSRF 필요, form username/password |
+| POST /api/auth/logout | CSRF 필요, 세션 무효화 |
+| GET /api/auth/me | 활성 역할 계정만, ID·계정명·역할만 반환 |
+| GET /api/equipment | 세 역할 조회, 코드 정렬, 금액·버전은 십진 문자열 |
+| GET /api/requests/mine | 요청자만, 인증된 ID로 서버 쿼리 제한 |
+| POST /api/requests | 요청자·CSRF 필요, reason만 허용, 요청자 ID는 인증 정보에서 취함 |
+| GET /api/requests/{id} | 현재 리비전에 VIEW_DETAIL 소유권·상태 정책 적용 |
+| GET /api/requests/{id}/revisions/{revisionId} | 요청/리비전 소속 대조 후 동일 정책 적용 |
+
+DRAFT는 빈 사유를 허용하며, 사유가 있으면 최대 500 코드 포인트·NUL 불가다.
+사유 필수·변경 존재·검증 완료 검사는 제출 단계에서 수행한다.
+요청과 첫 DRAFT는 한 트랜잭션에서 생성한다. 현재 포인터는 요청 ID와 리비전 ID의 복합 FK로 소속을 검증한다.
+다른 요청의 리비전 ID를 상세 URL에 넣으면 404다. 존재하는 타인 DRAFT 접근은 403이다.
+알 수 없는 JSON 필드는 거부하며, 클라이언트 requesterId로 소유자를 지정할 수 없다.
+
+DB V1: catalog.app_user, user_role, equipment, change_request, change_revision, 인덱스와 현재 리비전 복합 FK.
+mcr_owner는 NOLOGIN 스키마 소유자, mcr_app은 제한된 로그인 역할이다.
+별도 관리자 연결에서 SET ROLE mcr_owner 후 Flyway를 실행한다. 앱 자동 마이그레이션은 끄고 Hibernate validate만 사용한다.
+앱은 계정·역할·장비 SELECT, 요청/리비전 SELECT·INSERT·UPDATE와 해당 시퀀스 USAGE·SELECT만 받는다.
+계정 UPDATE·DDL·소유자 역할 전환 거부를 실제 앱 연결에서 검증했다.
+Embedded PostgreSQL URL의 user 쿼리 파라미터가 앱 사용자 설정을 덮어쓰지 않도록 사용자 없는 JDBC URL을 구성한다.
+
+테스트 DB는 임시 디렉터리, 시연 DB는 .local/postgres-data 고정 디렉터리다.
+시연 PostgreSQL은 127.0.0.1:15433, 웹 서버는 127.0.0.1:18081에 바인딩한다.
+시연 DB는 정리 옵션을 끄고 fsync=on으로 실행한다. 초기 데이터는 빈 DB에서만 한 번 생성한다.
+종료·재시작 후 변경값·버전·요청과 계정 수 보존을 실제 PostgreSQL 테스트로 확인했다.
+이는 전원 장애·장애 복구 실험이나 운영 DB 인증 강화의 증거가 아니다.
+
+React·TypeScript·Vite 버전과 기본 폴더 구조는 InvMgmt의 호환 구성을 따른다.
+화면에 보이는 역할별 메뉴는 편의이며 API 권한 검사로도 동일한 접근을 통제한다.
+계정 전환·401 처리 시 이전 요청 목록과 상세를 비워 이전 계정 데이터가 남지 않도록 한다.
+화면 전환 시 목록 조회가 시작되기 전부터 로딩 상태를 적용해 입력 폼 재생성으로 사유가 사라지는 문제를 막는다.
+Chrome E2E는 입력 사유·전송 JSON·서버 반환 상세 일치, 계정 전환 시 요청 분리, 조회자의 직접 API 차단을 확인한다.
+
+2단계 검증: 서버 77건(기존 단위 56+HTTP/DB 20+재시작 1), 프론트엔드 6건, Chrome E2E 2건 통과.
+소유권 검사 제거 시 대표 API 테스트가 expected 403 / actual 200으로 실패했고 복원 후 전체 서버 검증을 통과했다.
+제출·승인 처리와 불변 제출본 DB 통제는 아직 구현하지 않았다.
+## 확정 화면 디자인
+
+로그인은 미니멀 센터형, 업무 화면은 차분한 워크스페이스형으로 확정했다.
+밝은 회녹색 배경·흰색 패널·녹색 강조색을 로그인, 기준정보 목록, 내 요청 작성·목록·상세에 적용했다.
+기준정보의 변경 요청 작성 버튼은 요청자에게 표시하며 기존 본인 요청 화면으로 이동한다.
+CSV 업로드·검증 비교·제출·승인·처리 결과는 확정 시안에 따라 후속 기능 구현 시 연결한다.

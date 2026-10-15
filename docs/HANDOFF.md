@@ -1,11 +1,11 @@
-# 1단계 인계 — 2026-10-14
+# 작업 인계 — 2단계 완료 (2026-10-15)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 저장소 초기화만 완료, 커밋·원격 없음.
+- 로컬 Git 브랜치: `main`. 1단계 커밋 `3108111`, 2단계 변경은 미커밋. 원격 없음.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
-- 전체 MVP는 미완료. 로그인·HTTP API·React·DB는 다음 단계다.
+- 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 기존 참고 자료는 읽기 전용으로 확인했으며 프로젝트로 복사하지 않았다.
 - 회사 저장소·DB는 조회하지 않았다. 전역 Git 설정은 바꾸지 않았다.
 
@@ -33,7 +33,7 @@ Spring Boot 3.5.16, Gradle 9.1.0, Embedded PostgreSQL 2.2.2 + 바이너리 BOM 1
   이는 PC 전체에 모든 PostgreSQL 바이너리가 없다는 증명은 아니다.
 - 새 경로는 사전 존재하지 않았고, 생성·실제 파일 작성으로 쓰기 가능함을 확인했다.
 
-## 주요 파일
+## 1단계 주요 파일
 
 | 절대 경로 | 내용 |
 |---|---|
@@ -46,7 +46,7 @@ Spring Boot 3.5.16, Gradle 9.1.0, Embedded PostgreSQL 2.2.2 + 바이너리 BOM 1
 | `C:\toyProject\workspace\MstChgMgmt\scripts\dev.ps1` | Java 탐색·프로세스 환경·프로젝트 Gradle 캐시·Windows 우회 |
 | `C:\toyProject\workspace\MstChgMgmt\samples\catalog-create.csv` | 독립 예제 |
 
-## 검증 결과
+## 1단계 검증 결과
 
 ```powershell
 cd C:\toyProject\workspace\MstChgMgmt
@@ -82,25 +82,22 @@ OS 보안 프로그램이나 글로벌 설정은 변경하지 않았다.
 
 ## 스키마 변경·미해결 항목
 
-DB 생성·역할 생성·Flyway 마이그레이션·스키마 변경 없음.
-현재 valid()는 CSV 형식·필드 오류 여부만 뜻한다. DB 존재 검사·변경 존재·기대 버전 확인을 대신하지 않는다.
-서버 정책 연결, 원본 저장, 제출 내용 DB 보호, 내용 해시 구현, 승인 트랜잭션, PostgreSQL 통합 테스트,
-HTTP 권한·CSRF, 동시성, 브라우저 E2E, 시연 데이터 재시작 보존, GitHub Actions는 미구현이다.
-프론트 의존성 버전과 DB 실행 구성은 아직 확정·설치하지 않았다.
+V1 Flyway 마이그레이션으로 계정·역할·장비·요청·리비전 테이블, 현재 리비전 복합 FK, 인덱스, 앱 권한을 생성했다.
+CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정·철회·반려·승인·반영 이력은 미구현이다.
+반영 동시성·전체 롤백·멱등 재시도·화면 제출 묶음 일치·GitHub Actions는 후속 검증이다.
+현재 상태 정책의 자기 승인·구 리비전 보호를 승인 API 구현 완료로 표현하면 안 된다.
 
 ## 다음 작업
 
-**2단계: 로그인·기준정보 조회·소유권 통제**를 진행한다.
+**3단계: 업로드·검증·변경 비교**를 같은 채팅에서 진행한다.
 
-1. 이 문서와 DESIGN.md를 읽고 실제 소스·wrapper 결과를 필요한 범위에서 재확인한다.
-2. Spring Security 세션 로그인·CSRF, 인증 사용자 기반 행위자, 활성 여부 확인을 연결한다.
-3. Flyway 스키마 소유자·앱 계정 분리와 초기 역할별 계정을 만든다.
-4. Docker 없는 실제 PostgreSQL 테스트 구성 및 시연용 고정 데이터 경로를 분리한다.
-5. 기준정보 목록·본인 요청 목록/상세를 API로 제공하고 직접 호출 권한 테스트를 작성한다.
-6. React·TypeScript 로그인·기준정보·내 요청 조회 화면을 연결한다.
-7. 해당 단계 검증 완료 후 문서를 한 번 갱신한다.
-
-사용자 요청에 따라 채팅을 나누지 않고 현재 채팅에서 구현을 이어간다.
+1. DRAFT의 CSV 원본·검증 결과·기준정보 미리보기 저장 구조를 별도 Flyway V2로 추가한다. 이미 적용된 V1은 수정하지 않는다.
+2. 원본 조회와 업로드 모두 서버 소유권·역할·상태를 검사한다.
+3. 파일 크기·행 제한을 업로드 경계에서도 적용하고 현재 CatalogCsvValidator를 연결한다.
+4. CREATE 존재·UPDATE 미존재, 중복, 신규/변경/변경 없음과 전후 값·기대 버전을 검증한다.
+5. 파일 변경 시 기존 검증·미리보기를 폐기하고, 사용자 검토 이후 기준정보 변경을 감지할 기반을 마련한다.
+6. React의 내 요청·상세 화면에 업로드와 행·필드별 오류, 비교를 연결하고 직접 API/DB/필요 E2E를 검증한다.
+7. 확정 결과를 문서에 한 번 반영하고 한국어 커밋 메시지와 파일 목록을 함께 안내한다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -154,3 +151,81 @@ Gradle 8.14.6 및 현재 프로젝트의 Eclipse 우회 설정은 검증한 구�
 변경 후 test·bootJar 실행 성공, 56건 통과, 실패·오류 0건.
 생성 JAR manifest의 Start-Class가 com.hwandevblog.mstchgmgmt.MstChgMgmtApplication임을 확인했다.
 Eclipse에는 F5와 Gradle Refresh를 실행해 브랜치 표시·패키지·진입점 변경을 반영한다.
+## 2단계 구현·검증 완료 — 2026-10-15
+
+작업 경로: C:\toyProject\workspace\MstChgMgmt. 브랜치 main, 1단계 커밋 3108111 이후 변경이다.
+사용자 요청대로 같은 채팅에서 이어간다. 커밋·push는 수행하지 않았다.
+
+주요 경로:
+
+- src/main/resources/db/migration/V1__create_accounts_catalog_and_drafts.sql: 최초 스키마·권한.
+- src/main/resources/application.yml: 루프백 서버, 세션 쿠키, 앱 연결·Hibernate 검증.
+- src/main/java/com/hwandevblog/mstchgmgmt/account: 계정·역할 JPA 조회.
+- src/main/java/com/hwandevblog/mstchgmgmt/security: 세션 사용자·계정 상태 재확인 필터·Security·인증 조회 API.
+- src/main/java/com/hwandevblog/mstchgmgmt/equipment: 현재 장비 조회.
+- src/main/java/com/hwandevblog/mstchgmgmt/request: 본인 DRAFT 생성·목록·리비전 상세와 소유권 정책 연결.
+- src/main/java/com/hwandevblog/mstchgmgmt/common/ApiExceptionHandler.java: 정책 거부 응답.
+- src/test/java/com/hwandevblog/mstchgmgmt/DatabaseBootstrap.java: 관리자/소유자 마이그레이션과 초기 계정·장비.
+- src/test/java/com/hwandevblog/mstchgmgmt/LocalApplication.java: 고정 데이터 디렉터리·중복 실행 잠금·시연 실행.
+- src/test/java/com/hwandevblog/mstchgmgmt/PostgresIntegrationTest.java: 제한된 앱 연결을 사용하는 실제 PG 기반.
+- src/test/java/com/hwandevblog/mstchgmgmt/AccessApiTest.java: 실제 계정 로그인·HTTP 인증/권한·DB 계정 제한 20건.
+- src/test/java/com/hwandevblog/mstchgmgmt/PersistentDatabaseTest.java: 실제 PostgreSQL 종료·재시작 1건.
+- frontend/src/App.tsx, api.ts, styles.css: 로그인·기준정보·내 요청/상세 화면과 세션/CSRF 요청.
+- frontend/src/App.test.tsx, api.test.ts: UI·CSRF 갱신·요청자 ID 미전송·bigint 표시 6건.
+- frontend/e2e/access.spec.ts: 실제 서버/Chrome 로그인·저장·새로고침·계정 전환·직접 API 우회 차단 2건.
+- frontend/package-lock.json: 고정 npm 의존성. node_modules·dist·캡처는 Git 제외.
+
+DB 이름 catalog_review, 스키마 catalog, 소유자 mcr_owner(NOLOGIN), 앱 로그인 mcr_app.
+실제 앱 current_user=mcr_app, DB 생성·슈퍼유저 권한 없음, 계정 UPDATE·DDL·SET ROLE mcr_owner 거부를 확인했다.
+JDBC URL에 관리자 user 파라미터가 남지 않도록 사용자 없는 URL을 구성했다.
+마이그레이션은 별도 소유자 연결에서 수행하고 앱 자동 Flyway는 껐다. JPA는 validate만 수행한다.
+테이블: app_user, user_role, equipment, change_request, change_revision, flyway_schema_history.
+초기 계정 7개와 장비 3개는 빈 DB에만 넣는다. 요청과 첫 리비전 생성은 단일 트랜잭션이다.
+현재 포인터가 다른 요청 리비전을 가리키는 경우 복합 FK가 거부한다.
+
+실측 검증 결과:
+
+- scripts/dev.ps1 -Tasks test,bootJar: 최종 서버 77건 통과, 실패·오류·건너뜀 0. 프론트엔드 포함 JAR 생성 성공.
+- 프론트엔드 npm run build: TypeScript 검사와 Vite 빌드 성공.
+- npm run test:run: 6건 통과.
+- MCR_BASE_URL=http://127.0.0.1:18081에서 npm run test:e2e: 최종 2건 통과. 설치된 Chrome 사용.
+- CSRF 없는/위조 요청, 로그인 전 토큰 재사용, 세션 ID 미회전, 비활성 계정, 역할 회수, 타인 ID 접근, 요청자 ID 조작을 검사했다.
+- SUBMITTED/APPLIED 조회 권한은 관리자 DB fixture로만 검증했다. 실제 제출/승인 흐름은 아직 없다.
+- 소유권 검사 제거 실험: 대표 테스트 expected 403 / actual 200으로 1건 실패. 원본 해시 일치 복원 후 서버 77건 재통과.
+- 실험 로그 .local/verification/ownership-api-guard.log는 Git 제외다.
+- 실제 PostgreSQL 재시작에서 금액 17000·버전 1·임시 요청 1개·초기 계정 7개 보존, fsync=on을 확인했다.
+- 브라우저 검증 중 화면 전환 직후 입력 폼 재생성으로 사유가 사라지는 문제를 발견했다.
+  화면 전환 시 즉시 로딩 상태로 바꾸고 계정 전환 시 목록·상세를 비우도록 수정했다.
+  이후 입력 사유·전송 JSON·서버 응답 상세 일치와 다른 요청자 전환 E2E를 통과했다.
+- npm install 시 감사 결과 취약점 0이었으며, 이를 지속적인 안전성 보장으로 주장하지 않는다.
+
+실행:
+
+1. frontend에서 npm ci, npm run build.
+2. 프로젝트 루트에서 scripts/dev.ps1 -Tasks localRun. Java 21 번들을 탐색하는 기존 방식이다.
+3. http://127.0.0.1:18081 접속. 공통 시연 비밀번호 LocalDemo!2026.
+4. requester_a/requester_b=요청자, approver/approver_b=승인자, viewer=조회자, dual=이중 역할, inactive=비활성.
+5. 개발용 Vite는 frontend에서 npm run dev, http://127.0.0.1:5174. API를 18081로 프록시한다.
+6. 종료는 실행 터미널 Ctrl+C. 시연 DB .local/postgres-data는 보존한다.
+
+검증 종료 시 로컬 시연 서버 18081과 시연 DB 15433을 실행해 둔 상태다.
+E2E는 연결된 시연 DB에 검증용 DRAFT 요청을 생성한다. 삭제하지 않고 보존했다.
+테스트 임시 PostgreSQL DB는 시연 DB와 분리되며 종료 후 정리된다.
+현재 로컬 Embedded PostgreSQL은 trust 인증을 사용하는 개발 환경이고 운영 배포/인증 강화는 범위 밖이다.
+
+커밋 대상: build.gradle, README.md, docs/DESIGN.md, docs/HANDOFF.md,
+.gitattributes, 표준 줄바꿈 정규화 대상 gradlew.bat, 새 account/common/equipment/request/security 코드,
+src/main/resources, 위 테스트 기반·API·재시작 테스트, frontend 소스·설정·package-lock.json.
+.gitattributes는 InvMgmt와 같은 wrapper LF·bat CRLF·JAR binary 규칙이다. gradlew.bat의 실행 내용 변경은 없다.
+권장 커밋 메시지: 로그인 및 기준정보 조회와 요청 소유권 통제 구현
+Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서 변경 파일을 확인한 뒤 Commit만 사용한다.
+## 확정 디자인 적용 완료
+
+- frontend/src/App.tsx, frontend/src/styles.css: 중앙 로그인 카드와 밝은 녹색 업무 화면, 사용자 표시, 요청 작성 바로가기 적용.
+- 기존 인증·API·DB 로직 변경 없음. CSV 업로드 이후 업무 기능은 아직 구현하지 않았다.
+- 프론트엔드 build 성공, 기존 UI/API 단위 6건 및 실제 Chrome E2E 2건 통과.
+- 추가 브라우저 확인: 로그인 실패 표시, 320px 로그인·기준정보·요청 작성 화면의 문서 가로 넘침 없음, 요청 작성 바로가기 정상, 브라우저 오류 없음.
+- 18081의 기존 실행 서버에서 새 리소스 제공을 확인했다. 중복 localRun은 데이터 디렉터리 잠금으로 차단되었으며 기존 서버를 유지했다.
+- DB 스키마 변경 없음. 검증용 DRAFT 추가는 기존 E2E 동작이며 보존했다.
+- 이전 2단계와 이번 디자인 모두 아직 커밋하지 않았다. 함께 커밋할 경우 권장 메시지: 로그인 및 기준정보 조회와 변경 요청 기본 화면 구현
+- 다음 작업은 확정 시안의 CSV 업로드·행 검증·변경 전후 비교 기능이다. 같은 채팅에서 진행한다.
