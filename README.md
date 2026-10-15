@@ -1,5 +1,8 @@
 # MstChgMgmt
 
+[![Backend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/HwanDevBlog/MstChgMgmt/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/HwanDevBlog/MstChgMgmt/actions/workflows/frontend-ci.yml)
+
 장비 기준정보의 일괄 변경 과정에서 발생하는 CSV 검증, 변경 요청의 소유권과 승인 대상의 일치 문제를 다루는 토이 프로젝트입니다.
 
 단순 CRUD보다 다음 문제를 코드와 테스트로 확인하는 데 초점을 맞췄습니다.
@@ -312,7 +315,7 @@ Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gra
 
 소유권 검사 제거 실험에서는 타인 상세 조회가 `200`이 되어 `403`을 기대한 대표 API 테스트가 실패했습니다. 원본 복원 후 전체 서버 테스트가 다시 통과했습니다. 실제 제출·승인·반영·반려·철회·새 리비전 생성은 API와 브라우저에서 확인했습니다. 계정 전환 응답 가드를 제거하면 타인 요청 상세가 다시 나타나며 회귀 테스트가 실패했고, 원본 복원 후 프론트엔드 전체 테스트가 통과했습니다.
 
-서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions는 main push와 main 대상 pull request에서 백엔드·프론트엔드를 각각 검증하도록 구성했습니다. 백엔드는 Java 21에서 PostgreSQL 통합 테스트를 포함한 전체 서버 테스트를 실행하고, 프론트엔드는 Node 24에서 npm ci·타입 검사·UI 테스트·빌드를 실행합니다. Chrome E2E와 재시작 시연은 로컬 검증이며 CI 실행에는 포함하지 않았습니다. 최초 GitHub 실행 결과는 이 설정을 커밋·push한 뒤 확인합니다.
+서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions는 main push와 main 대상 pull request에서 백엔드·프론트엔드를 각각 검증하도록 구성했습니다. 백엔드는 Java 21에서 PostgreSQL 통합 테스트를 포함한 전체 서버 테스트를 실행하고, 프론트엔드는 Node 24에서 npm ci·타입 검사·UI 테스트·빌드를 실행합니다. Chrome E2E와 재시작 시연은 로컬 검증이며 CI 실행에는 포함하지 않았습니다. 2026-10-15 커밋 `cae4afa`의 [Backend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508866)와 [Frontend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508783)가 모두 성공했습니다.
 
 ## 개발 및 검증 방식
 

@@ -84,5 +84,5 @@ ORDER BY d.processed_at DESC, c.equipment_code;
 시연 DB와 앱을 재시작한 뒤 기준정보·버전·제출본·처리 결과 보존도 확인했습니다.
 
 GitHub Actions의 Backend CI와 Frontend CI는 설정 커밋을 main에 push한 뒤 Actions 탭에서 확인합니다.
-로컬 통과 결과를 GitHub 실행 성공으로 표시하지 않습니다. 두 작업의 최초 실행 결과 확인은 아직 남아 있습니다.
+2026-10-15 커밋 `cae4afa`에서 [Backend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508866)와 [Frontend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508783) 모두 성공한 것을 확인했습니다. Chrome E2E·시연 DB 재시작은 로컬 검증 결과입니다.
 CI는 별도 임시 DB를 사용하며 이 PC의 시연 DB에 접속하지 않습니다.

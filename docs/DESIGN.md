@@ -11,7 +11,7 @@
 계정 단위 직무 분리이며, 한 사람이 두 계정을 쓰는 것까지 차단하지 않는다.
 
 현재 구현: CSV 검증·원본 해시·권한/상태 도메인, 세션 로그인·CSRF, PostgreSQL/Flyway, 기준정보 조회, 본인 DRAFT 생성/조회, CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지, 불변 제출본·내용 해시·제출, 승인 원자 반영·반려·철회·새 리비전·처리 이력, React 화면.
-GitHub Actions 백엔드·프론트엔드 설정을 추가했다. 최초 원격 실행 결과는 설정 커밋·push 후 확인한다. 운영 배포 구성은 범위 밖이다.
+GitHub Actions 백엔드·프론트엔드 설정을 추가했다. 2026-10-15 커밋 cae4afa의 Backend CI·Frontend CI 모두 성공을 확인했다. 운영 배포 구성은 범위 밖이다.
 도메인 정책 테스트와 실제 PostgreSQL HTTP 권한 테스트를 구분한다. 자기 승인·구 리비전 차단은 승인 API에서도 검증했다.
 
 ## 2. CSV 규칙 — catalog-v1
@@ -278,6 +278,6 @@ DecisionService는 요청→리비전→장비 코드순으로 잠근다. 기존
 InvMgmt의 CI 양식을 따라 main push·main 대상 pull request에서 Backend CI와 Frontend CI를 실행한다.
 백엔드는 Ubuntu·Java 21에서 bash ./gradlew test --no-daemon으로 임시 PostgreSQL 통합 테스트를 실행한다.
 프론트엔드는 Node 24·npm ci·typecheck·test:run·build를 실행한다. 워크플로 권한은 contents: read다.
-로컬 Chrome E2E와 시연 DB 재시작 검증은 CI 범위와 구분한다. 실제 GitHub 결과·배지는 최초 push 이후 확인한다.
+로컬 Chrome E2E와 시연 DB 재시작 검증은 CI 범위와 구분한다. 커밋 cae4afa의 실제 GitHub 두 작업 성공을 확인하고 README에 CI 배지를 추가했다.
 docs/DEMO.md에 역할별 시연, 반려·철회·새 리비전, 기준정보 충돌과 읽기 전용 DB 쿼리를 정리했다.
 이번 단계에는 앱 코드·DB 마이그레이션 변경이 없다.
