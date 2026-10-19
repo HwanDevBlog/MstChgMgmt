@@ -1,9 +1,9 @@
-# 작업 인계 — 로컬 요청자·승인자 두 계정 정리 완료 (2026-10-19)
+# 작업 인계 — MVP·사용자 수동 검증 완료 (2026-10-19)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `09b8a34`(이클립스 실행 오류 수정 및 테스트 계정과 화면 UI 개선)의 push·두 CI 성공을 앞선 턴에서 확인했다. 이후 로컬 tester/admin 두 계정 정리 9개 파일은 미커밋이다.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `4e45fe6`(로컬 계정 정리 및 상세 보기 스크롤 수정)은 로컬·원격 일치와 두 CI 성공을 확인했다. 사용자 수동 시연·실제 DB 재시작 검증도 완료했으며 이번 최종 결과 문서 2개만 미커밋이다.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
@@ -93,12 +93,13 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**admin 로그인·요청 #30 승인 시연과 계정 변경 커밋 확인**을 같은 채팅에서 이어간다.
-+
-+1. 현재 서버에는 tester/1·admin/1만 로그인 가능하도록 반영했다. 사용자가 요청 #30을 admin으로 승인했고 APPLIED·실제 기준정보·반영 이력을 확인했다. 현재 보기 스크롤 수정도 반영되어 Ctrl+F5 후 확인한다.
-+2. 계정 정리와 보기 스크롤 수정 11개 파일을 사용자 직접 커밋한다. 기존 gradlew.bat 줄바꿈 변경은 제외한다. 통합 커밋 메시지는 로컬 계정 정리 및 상세 보기 스크롤 수정.
-+3. 커밋 완료 통보 시 로컬 HEAD와 GitHub main, 해당 커밋의 두 CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
-+
+**최종 검증 기록 커밋 확인**을 같은 채팅에서 이어간다.
+
+1. 계획한 MVP 구현·자동 테스트·CI와 사용자 수동 시연·충돌 차단·정상 재시작 데이터 보존 검증을 완료했다. 추가 기능이나 테스트를 임의로 계속 만들지 않는다.
+2. 사용자가 docs/DESIGN.md·docs/HANDOFF.md 두 문서를 직접 커밋한다. 메시지: 수동 시나리오 및 재시작 데이터 보존 검증 결과 정리. 기존 gradlew.bat은 제외한다.
+3. 커밋 완료 통보 시 로컬 HEAD·GitHub main·해당 커밋의 Backend CI·Frontend CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
+4. #54는 충돌 후 SUBMITTED로 의도적으로 남겨뒀다. 추가 승인이나 철회는 사용자가 요청할 때 진행한다.
+
 ## 작업 경로 이동 — 2026-10-15
 
 사용자 요청으로 프로젝트 전체를 `C:\toyProject\workspace\MstChgMgmt`로 이동했다.
@@ -394,3 +395,14 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - 프론트엔드 전체 18건·타입 검사·빌드 통과. zz-workflow.spec.ts에 최초 열기·같은 리비전·같은 요청 보기의 제목 y=0~120px 검증을 추가하고 관련 Chrome 업무 3건을 최종 통과했다. 서버 전체는 UI 수정이라 반복하지 않았다.
 - 이번 UI 파일은 frontend/src/App.tsx·styles.css, frontend/e2e/zz-workflow.spec.ts. 앞선 두 계정 정리와 합쳐 커밋 대상 11개(gradlew.bat 제외): 문서 4개, Java 3개, E2E 2개, App.tsx·styles.css 2개.
 - 통합 커밋 메시지: 로컬 계정 정리 및 상세 보기 스크롤 수정. 다음 확인: Ctrl+F5 → 반영 이력 #30 보기 → 요청 #30 상세 제목이 화면 위쪽에 보이는지 확인. 활성 계정은 tester/1·admin/1이다.
+
+## 사용자 수동 시연·DB 재시작 검증 완료 — 2026-10-19
+
+- 사용자가 실제 화면으로 오류 CSV→정상 CSV→제출→admin 승인·반영→기준정보·이력 조회를 확인했다. #30 APPLIED, 카메라 15,000→17,000·버전 0→1, 삼각대 신규 3,000·버전 0, 변경 없음 조명 버전 0 유지.
+- #52는 리비전 1을 admin이 사유와 함께 REJECTED, tester가 리비전 2 생성·사유 보완·재검증·제출 후 WITHDRAWN 처리했다. 두 리비전의 과거 제출본·처리 사유 보존, 카메라 17,000·버전 1 유지 확인.
+- #53/#54는 같은 카메라 17,000→18,000·기대 버전 1로 제출했다. #53 승인 후 #54 승인은 CATALOG_CONFLICT 안내로 차단됐고 SUBMITTED 유지. 카메라 18,000·버전 2. 이 수동 검증은 순차 승인 충돌이며 실제 동시 경합은 기존 별도 DB 자동 테스트 근거를 사용한다.
+- 재시작 전 .local/verification/manual-restart/before.json에 요청 30/52/53/54 상세·리비전 목록과 총 5개 리비전의 전체 고정 제출본·결정 영수증·CSV 원본 SHA-256, 카메라 값을 저장했다. 사용자 데이터를 변경하지 않았다.
+- 사용자 Eclipse 종료 후 잔류 DB PID 45388을 해당 .local/postgres-data 지정 pg_ctl로 정상 종료했다. 데이터 삭제·초기화 없음. 사용자가 F5 후 공유 localRun 구성으로 재실행했고 DB PID 38532 확인.
+- 재시작 후 같은 API·원본 조회를 after.json에 저장하고 Python JSON 전체 값 비교가 True임을 확인했다. 카메라 18,000·버전 2, #30 APPLIED, #52 WITHDRAWN(과거 REJECTED 포함), #53 APPLIED, #54 SUBMITTED. 리비전 5개 제출본·영수증·원본 해시·요청 소유권 모두 동일.
+- 자료의 정확한 경로: C:\toyProject\workspace\MstChgMgmt\.local\verification\manual-restart\before.json, after.json, original-*.csv, after-original-*.csv. 모두 Git 제외. 이 단계에서는 앱·DB 스키마를 수정하거나 자동 전체 테스트를 반복하지 않았다.
+- 이번 문서 변경: docs/DESIGN.md·docs/HANDOFF.md 2개. 커밋 메시지: 수동 시나리오 및 재시작 데이터 보존 검증 결과 정리. 기존 gradlew.bat 줄바꿈 변경은 제외한다.
