@@ -1,9 +1,9 @@
-# 작업 인계 — MVP·CI 검증 완료 (2026-10-15)
+# 작업 인계 — 전체 UI 일괄 개선·검수 완료 (2026-10-19)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `cae4afa`(GitHub Actions 검증 구성 및 시연 안내 정리), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. GitHub main과 전체 해시 일치를 확인했다. CI 설정·시연 문서까지 push 완료. 실제 두 CI 성공 확인 후 배지·결과 문서 수정은 미커밋이다.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `5b3769f`(README CI 배지 및 검증 결과 반영), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. 이 커밋의 push·두 CI 성공은 앞선 턴에서 확인했다. 이후 Eclipse·테스트 계정·전체 UI 개선은 미커밋이다.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
@@ -93,11 +93,12 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**문서 마무리 커밋 확인**을 같은 채팅에서 이어간다.
+**화면 확인 후 일괄 변경 커밋·CI 확인**을 같은 채팅에서 이어간다.
 
-1. 사용자 커밋 완료 통보 시 로컬 HEAD와 GitHub main 및 해당 커밋의 두 CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
-2. 배지·검증 결과 문서의 커밋까지 정상 반영되면 계획한 MVP와 CI 단계는 완료다. 새 기능은 사용자 요구를 받은 뒤 진행한다.
-3. 코드 변경이 없는 문서 커밋에서는 불필요한 로컬 전체 테스트를 반복하지 않는다.
+1. 사용자 브라우저에서 Ctrl+F5 후 개선 화면을 확인한다. 서버 재시작은 프론트 변경에 필요 없다. 사용자 요청 #30은 DRAFT·catalog-change.csv 검증 완료 상태이며 아직 제출하지 않았다.
+2. Eclipse·계정·UI 누적 변경 24개를 사용자 직접 커밋한다. 기존 gradlew.bat 줄바꿈 변경은 제외한다.
+3. 커밋 완료 통보 시 로컬 HEAD와 GitHub main, 해당 커밋의 Backend CI·Frontend CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
+4. 이후 사용자의 요청 #30 제출→승인→조회 시연을 이어간다. 별도 신규 기능은 임의로 추가하지 않는다.
 
 ## 작업 경로 이동 — 2026-10-15
 
@@ -324,3 +325,53 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - InvMgmt 형식의 CI 배지와 결과 문구를 README·DEMO·DESIGN·HANDOFF에 반영했다. 총 4개 문서이며 앱·DB·워크플로 변경은 없다.
 - 실제 원격 실행 결과를 조회했고 로컬 테스트는 반복하지 않았다. gradlew.bat의 기존 줄바꿈 변경은 제외한다.
 - 커밋 메시지: README CI 배지 및 검증 결과 반영.
+
+## 이클립스 직접 실행 홈 화면 404 수정 — 2026-10-19
+
+- 원인: Gradle processResources는 frontend/dist를 static으로 복사하지만 Eclipse Java Application은 bin/main만 사용해 해당 복사를 거치지 않았다. dist/index.html은 존재하고 bin/main/static/index.html은 없음을 확인했다.
+- 수정: src/test/java/com/hwandevblog/mstchgmgmt/LocalApplication.java에서 로컬 실행에만 frontend/dist의 file URI를 static-locations로 설정한다. 빌드 파일이 없으면 DB를 시작하기 전에 빌드 안내 오류를 반환한다. 패키징과 서버 보안 설정은 변경하지 않았다.
+- 신규 LocalFrontendTest.java: 클래스패스 밖 임시 index·CSS·JS의 HTTP 200 및 홈 본문, 익명 API 401, 빌드 누락 안내를 검증한다. 별도 임시 DB를 사용했다. 전체 서버 119건 통과, 실패·오류·건너뜀 0.
+- README의 Eclipse 작업 디렉터리·화면 빌드 안내와 테스트 건수를 갱신했다. 실제 사용자 Eclipse 프로세스는 자동 종료하지 않았고 F5 후 LocalApplication 재실행·브라우저 새로고침 확인이 남아 있다.
+- DB·마이그레이션 변경 없음. 기존 gradlew.bat 줄바꿈 변경은 제외.
+- 커밋 대상: LocalApplication.java, LocalFrontendTest.java, README.md, docs/HANDOFF.md. 메시지: 이클립스 실행 시 로그인 화면 경로 수정. 사용자 화면 확인 후 커밋한다.
+
+## 이클립스 상세 조회 500 수정 — 2026-10-19
+
+- 사용자 요청 #30은 정상 저장됐고 mine API는 200, 상세·이력은 500을 별도 로그인 세션의 읽기 전용 조회로 재현했다.
+- javap로 Eclipse bin/main의 RequestController에는 MethodParameters가 없고 Gradle 클래스에는 있음을 확인했다. 암시적 @PathVariable 이름 추론이 Eclipse 컴파일에 의존한 것이 원인이다.
+- RequestController·RevisionWorkspaceController·SubmissionController·DecisionController의 경로 변수 26곳에 requestId·revisionId 이름을 명시했다. DB·권한·업무 상태 정책은 변경하지 않았다.
+- Git 제외 .local/verification/no-parameter-names.gradle로 -parameters를 제거하고 전체 재컴파일·서버 테스트 119건 통과, 실패·오류·건너뜀 0. 실제 클래스에도 MethodParameters가 없음을 확인했다. 기본 Gradle 설정은 변경하지 않았다.
+- 실제 Eclipse 서버는 사용자가 F5 후 LocalApplication 종료·재실행하고 요청 #30 상세를 확인해야 한다. 새 요청을 중복 생성할 필요가 없다.
+- 이전 화면 404 수정과 함께 미커밋: LocalApplication.java, LocalFrontendTest.java, 위 Controller 4개, README.md, docs/HANDOFF.md 총 8개. gradlew.bat은 제외한다. 커밋 메시지: 이클립스 실행 시 화면 및 요청 상세 조회 오류 수정. 화면 확인 후 커밋 안내한다.
+
+## Eclipse PostgreSQL 로그 깨짐 설정 완료 — 2026-10-19
+
+- InvMgmt의 개인 build.gradle localRun은 LC_ALL=C·LANG=C를 사용하고, 기존 MstChgMgmt Java Application 실행 구성에는 환경 변수가 없음을 확인했다. InvMgmt 파일은 수정하지 않았다.
+- 프로젝트 루트 MstChgMgmt - localRun.launch를 추가했다. Java Application LocalApplication, 프로젝트 루트 작업 디렉터리, LC_ALL=C·LANG=C, UTF-8 콘솔 설정을 포함한다. 사용자 Eclipse 메타데이터를 직접 수정하지 않았다.
+- 같은 프로세스 환경에서 실제 pg_ctl status를 실행해 영어 출력과 기존 PID 45388 실행 상태를 확인했다. DB 중지·삭제·재시작은 하지 않았다. XML 파싱·환경 값과 diff 형식 검증 완료. 앱 코드 변경이 없어 전체 테스트는 반복하지 않았다.
+- README 실행 안내를 전용 공유 구성 사용으로 변경했다. Eclipse F5 후 Run Configurations > Java Application > MstChgMgmt - localRun을 선택해야 한다. 기존 LocalApplication 실행 구성은 새 환경 변수를 자동 상속하지 않는다.
+- postmaster.pid already exists는 이전 PostgreSQL 잔류로 인한 별도 중복 기동 메시지다. 인코딩 수정으로 해결됐다고 주장하지 않는다. 현재 DB는 그대로 보존했다.
+- 앞선 Eclipse 화면·API 수정과 합쳐 커밋 대상 9개: launch, README, HANDOFF, LocalApplication, LocalFrontendTest, Controller 4개. gradlew.bat 제외. 권장 메시지: 이클립스 실행 시 화면·조회 오류 및 로그 설정 수정.
+
+## 로컬 요청자 계정 변경 완료 — 2026-10-19
+
+- 사용자 요청으로 로컬 requester_a를 tester / 1로 변경했다. 계정 ID 1·REQUESTER 역할·기존 요청 소유권은 유지한다. 나머지 계정과 자동 서버 테스트용 기본 seed는 변경하지 않았다.
+- DatabaseBootstrap.configureLocalTester를 LocalApplication에서만 호출한다. 기존 DB와 신규 DB에 모두 적용하며 BCrypt 해시를 저장한다. 이미 tester/1이면 해시를 다시 쓰지 않는다. 두 계정이 동시에 존재하면 임의 병합하지 않고 중단한다.
+- 현재 시연 DB에도 변경 적용 완료. 실제 HTTP 로그인 204, me username=tester/id=1, mine에 요청 #30 유지 확인. 기존 사용자 브라우저는 로그아웃 후 tester/1로 재로그인한다. DB 마이그레이션·장비·요청 내용 변경 없음.
+- 별도 임시 PG의 LocalDemoAccountTest 1건 통과: ID·요청 소유권·역할 보존, 비밀번호 BCrypt 일치, 반복 적용 시 해시 불변 확인. 이전 119건 전체 테스트는 이번 계정 변경 후 반복하지 않았다.
+- README·DEMO 계정 안내와 E2E 4개 파일의 요청자 로그인만 새 정보로 맞췄다. Playwright --list에서 7건 정상 로드. 실제 E2E 전체 재실행은 하지 않았다.
+- 앞선 Eclipse 수정 포함 미커밋 16개(gradlew.bat 제외). 계정 관련 신규 변경: DatabaseBootstrap.java, LocalDemoAccountTest.java, docs/DEMO.md, frontend/e2e/*.spec.ts 4개. LocalApplication·README·HANDOFF는 기존 변경에 추가했다.
+- 통합 커밋 메시지: 이클립스 실행 오류 수정 및 로컬 테스트 계정 변경. 사용자가 화면 확인 후 Eclipse에서 직접 커밋한다.
+
+## 전체 UI 일괄 개선·검수 완료 — 2026-10-19
+
+- 대상: frontend/src/App.tsx, RevisionWorkspace.tsx, RevisionHistory.tsx, SubmissionPanel.tsx, WorkflowActions.tsx, styles.css. 회귀 검증: RevisionWorkspace.test.tsx. README·DEMO·DESIGN·HANDOFF는 완료 후 한 번 정리했다.
+- 전체 표의 열 너비·헤더/본문 정렬, 공통 글자·버튼·상태 배지·포커스, 장문 사유 줄바꿈, 모바일 내부 스크롤을 정리했다. 실제 처리 이력의 금액 헤더와 값도 오른쪽 정렬한다.
+- 긴 목록 max-height·고정 헤더, 상세 선택 시 스크롤·포커스, 검증 직접 실행 후 결과 이동·완료/오류 안내를 추가했다. 업로드된 파일 표시와 파일 선택/업로드/검증 단계 안내·처리 중 문구를 구분한다. 선택한 과거 리비전은 현재 리비전으로 잘못 표시하지 않는다.
+- 최종 프론트엔드 전체 18건·타입 검사·Vite 빌드 통과. 사용자 혼동 경로의 회귀 테스트는 오류 검증 후 결과 포커스·오류 건수 안내·검증 API 한 번 호출을 확인한다.
+- 실제 Chrome E2E 7건 통과: 로그인/소유권, 오류 CSV 수정, 검토 묶음 충돌, 승인/반영, 반려/새 리비전/철회, 계정 전환 지연 응답. 최종 버튼 공통 CSS·문구 소폭 정리 후에는 빌드·화면 검수만 했으며 E2E 전체를 불필요하게 반복하지 않았다.
+- 화면 검수: 로그인·기준정보·요청 목록·임시 검증·제출 검토·반려 상세·승인 목록/검토·반영 목록/상세·과거 철회 상세 11종은 실제 API/DB로 조회했다. 오류·빈 목록 2종은 해당 검수 브라우저의 GET 응답만 대체했다. 각각 1440px·390px 총 26캡처, 표 정렬·페이지 가로 넘침·브라우저 오류 검사 0건. 실제 캡처도 확인했다.
+- 검수 결과와 캡처: C:\toyProject\workspace\MstChgMgmt\.local\verification\ui-review\report.json 및 같은 폴더의 PNG. Git 제외다. 검수 스크립트는 C:\Users\USER\Documents\ChatGPT\기타\.cache\mcr-ui-audit.mjs다.
+- 사용자 요청 #30은 조회·제출 미리보기만 수행해 DRAFT·정상 CSV 검증 결과를 유지했다. E2E는 별도 신규 요청·장비에 시연 이력을 남겼고 초기 3개 장비 값은 유지했다. 이번 UI 작업에는 DB 마이그레이션·서버 권한·승인 정책 변경이 없다.
+- 커밋 대상 24개(기존 gradlew.bat 제외): 문서 README.md·docs/DEMO.md·docs/DESIGN.md·docs/HANDOFF.md 4개, 공유 launch 1개, frontend/e2e 4개, frontend/src 위 7개, Java RequestController·RevisionWorkspaceController·SubmissionController·DecisionController·DatabaseBootstrap·LocalApplication·LocalDemoAccountTest·LocalFrontendTest 8개.
+- 통합 커밋 메시지: 이클립스 실행 오류 수정 및 테스트 계정과 화면 UI 개선.

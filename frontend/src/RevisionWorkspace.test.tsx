@@ -58,3 +58,15 @@ test('레코드·필드 오류와 변경 없음 결과를 구분한다', async (
   expect(screen.getByText('대여료는 0 이상의 정수로 입력하세요.')).toBeInTheDocument();
   expect(screen.queryByText('변경할 내용이 없습니다.')).not.toBeInTheDocument();
 });
+
+test('검증을 실행하면 오류 결과에 초점을 옮기고 다음 행동을 안내한다', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ ...workspace, preview: null });
+  vi.mocked(api.validate).mockResolvedValue({ ...preview, valid: false, changed: 0, rows: [],
+    errors: [{ recordNumber: 2, field: 'daily_fee_krw', code: 'INVALID_FEE' }] });
+  render(<RevisionWorkspace request={request} onFailure={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: '검증하기' }));
+  const result = await screen.findByRole('region', { name: '검증 및 비교 결과' });
+  await waitFor(() => expect(result).toHaveFocus());
+  expect(screen.getByText(/검증 오류 1건이 있습니다/)).toBeInTheDocument();
+  expect(api.validate).toHaveBeenCalledTimes(1);
+});

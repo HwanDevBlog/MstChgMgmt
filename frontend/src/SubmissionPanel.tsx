@@ -56,9 +56,9 @@ export default function SubmissionPanel({ request, onUpdated, onFailure, user, i
     } catch (cause) { failed(cause); }
     finally { setBusy(false); }
   }
-  return <section className="card" aria-label={readOnly ? '고정 제출본' : '제출 확인'}>
+  return <section className="card" aria-busy={busy} aria-label={readOnly ? '고정 제출본' : '제출 확인'}>
     <div className="card-heading"><h2>{readOnly ? '고정 제출본' : '제출 확인'}</h2>
-      {readOnly && <span className="badge enabled">{({ SUBMITTED: '승인 대기', APPLIED: '반영 완료', REJECTED: '반려', WITHDRAWN: '철회' } as Record<string, string>)[request.state]}</span>}</div>
+      {readOnly && <span className="badge" data-state={request.state}>{({ SUBMITTED: '승인 대기', APPLIED: '반영 완료', REJECTED: '반려', WITHDRAWN: '철회' } as Record<string, string>)[request.state]}</span>}</div>
     <div className="submission-body">
       {!readOnly && <>
         <p className="muted">제출하면 변경 사유·파일·전후 값이 고정되어 수정할 수 없습니다. 실제 기준정보는 승인 단계에서 반영됩니다.</p>
@@ -76,7 +76,7 @@ export default function SubmissionPanel({ request, onUpdated, onFailure, user, i
           {bundle.submittedAt && <><dt>제출 시각</dt><dd>{new Date(bundle.submittedAt).toLocaleString('ko-KR')}</dd></>}</dl>
         {bundle.rows.map(row => <div key={row.equipmentCode} className="submitted-row"><h3>{row.equipmentCode} · {row.operation === 'CREATE' ? '신규' : row.kind === 'UNCHANGED' ? '변경 없음' : '변경'}
           <span className="muted">기대 버전 {row.expectedVersion ?? '신규'}</span></h3>
-          <div className="table-scroll"><table aria-label={`${row.equipmentCode} 제출 전후 값`}><thead><tr><th>필드</th><th>변경 전</th><th>변경 후</th></tr></thead>
+          <div className="table-scroll"><table className="value-table" aria-label={`${row.equipmentCode} 제출 전후 값`}><colgroup><col style={{ width: '22%' }} /><col style={{ width: '39%' }} /><col style={{ width: '39%' }} /></colgroup><thead><tr><th>필드</th><th>변경 전</th><th>변경 후</th></tr></thead>
             <tbody>{fields.map(field => <tr key={field}><th>{labels[field]}</th><td>{value(row.before, field)}</td>
               <td className={!row.before || row.before[field] !== row.after[field] ? 'changed-value' : ''}>{value(row.after, field)}</td></tr>)}</tbody></table></div>
         </div>)}

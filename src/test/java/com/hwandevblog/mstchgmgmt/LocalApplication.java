@@ -8,6 +8,7 @@ import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 
 /**
  * 프로젝트 내부의 고정 데이터 디렉터리로 PostgreSQL과 웹 서버를 실행한다.
@@ -19,6 +20,7 @@ public final class LocalApplication {
     private static FileLock lock;
 
     public static void main(String[] args) throws Exception {
+        var application = webApplication(Path.of("frontend/dist"));
         Path root = Path.of(System.getProperty("mcr.local.root", ".local")).toAbsolutePath().normalize();
         Files.createDirectories(root);
         lockChannel = FileChannel.open(root.resolve("demo.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -29,9 +31,21 @@ public final class LocalApplication {
                 .setServerConfig("listen_addresses", "127.0.0.1")
                 .setServerConfig("fsync", "on").start();
         var url = DatabaseBootstrap.prepare(postgres);
+        DatabaseBootstrap.configureLocalTester(url);
         System.setProperty("spring.datasource.url", url);
         System.setProperty("spring.datasource.username", "mcr_app");
         System.setProperty("spring.datasource.password", DatabaseBootstrap.APP_PASSWORD);
-        SpringApplication.run(MstChgMgmtApplication.class, args);
+        application.run(args);
+    }
+
+    // 이클립스 직접 실행은 Gradle 리소스 복사를 거치지 않아 빌드된 화면 경로를 직접 연결한다.
+    static SpringApplication webApplication(Path frontend) {
+        if (!Files.isRegularFile(frontend.resolve("index.html"))) {
+            throw new IllegalStateException("Frontend build missing. Run npm ci and npm run build in frontend first.");
+        }
+        var application = new SpringApplication(MstChgMgmtApplication.class);
+        application.setDefaultProperties(Map.of("spring.web.resources.static-locations",
+                frontend.toAbsolutePath().normalize().toUri().toString()));
+        return application;
     }
 }

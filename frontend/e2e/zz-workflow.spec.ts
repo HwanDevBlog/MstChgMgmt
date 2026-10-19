@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 const header='operation,equipment_code,name,category,daily_fee_krw,active\n';
-async function login(page:Page,username:string){await page.goto('/');await page.getByLabel('아이디').fill(username);await page.getByLabel('비밀번호').fill('LocalDemo!2026');await page.getByRole('button',{name:'로그인',exact:true}).click();await page.getByRole('heading',{name:'기준정보 목록',exact:true}).waitFor();}
+async function login(page:Page,username:string){await page.goto('/');await page.getByLabel('아이디').fill(username);await page.getByLabel('비밀번호').fill(username === 'tester' ? '1' : 'LocalDemo!2026');await page.getByRole('button',{name:'로그인',exact:true}).click();await page.getByRole('heading',{name:'기준정보 목록',exact:true}).waitFor();}
 async function submit(page:Page,csv:string){
  await page.getByRole('button',{name:'내 변경 요청',exact:true}).click();await page.getByLabel('변경 사유',{exact:true}).fill('전체 업무 흐름 검증');
  const created=page.waitForResponse(r=>r.url().endsWith('/api/requests')&&r.request().method()==='POST');await page.getByRole('button',{name:'요청 임시 저장'}).click();const request=await(await created).json();
@@ -14,7 +14,7 @@ test('요청자 제출→다른 승인자 반영→조회자 이력과 실제 �
  const ownerContext=await browser.newContext();const approverContext=await browser.newContext();const viewerContext=await browser.newContext();
  const owner=await ownerContext.newPage();const approver=await approverContext.newPage();const viewer=await viewerContext.newPage();
  const code='EQ-'+Date.now().toString(36).slice(-6).toUpperCase();
- await login(owner,'requester_a');const request=await submit(owner,header+`CREATE,${code},브라우저 신규 장비,ACCESSORY,1000,true\n`);
+ await login(owner,'tester');const request=await submit(owner,header+`CREATE,${code},브라우저 신규 장비,ACCESSORY,1000,true\n`);
  await login(approver,'approver');await approver.getByRole('button',{name:'승인 대기',exact:true}).click();await approver.getByRole('button',{name:`요청 ${request.requestId} 상세`,exact:true}).click();
  const snapshot=await(await approver.request.get(`/api/requests/${request.requestId}/revisions/${request.revisionId}/submission`)).json();
  await expect(approver.getByRole('table',{name:`${code} 제출 전후 값`})).toContainText('1,000원');await expect(approver.getByRole('button',{name:'승인 및 반영'})).toBeDisabled();
@@ -49,7 +49,7 @@ test('반려→새 리비전→과거 제출본 조회→재제출→철회가 �
 
 test('계정 전환 전에 시작한 반려 응답이 새 계정의 요청 화면에 남지 않는다',async({browser})=>{
  const ownerContext=await browser.newContext();const approverContext=await browser.newContext();const owner=await ownerContext.newPage();const approver=await approverContext.newPage();
- const code='EQ-'+(Date.now()+4321).toString(36).slice(-6).toUpperCase();await login(owner,'requester_a');const request=await submit(owner,header+`CREATE,${code},응답 지연 확인,AUDIO,1000,true\n`);
+ const code='EQ-'+(Date.now()+4321).toString(36).slice(-6).toUpperCase();await login(owner,'tester');const request=await submit(owner,header+`CREATE,${code},응답 지연 확인,AUDIO,1000,true\n`);
  await login(approver,'approver');await approver.getByRole('button',{name:'승인 대기',exact:true}).click();await approver.getByRole('button',{name:`요청 ${request.requestId} 상세`,exact:true}).click();
  let release!:()=>void;let done!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve});const serverDone=new Promise<void>(resolve=>{done=resolve});
  await approver.route('**/reject',async route=>{const response=await route.fetch();expect(response.status()).toBe(200);done();await gate;await route.fulfill({response});});

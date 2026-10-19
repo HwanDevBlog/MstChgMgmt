@@ -26,13 +26,13 @@ public class RequestController {
     }
 
     @GetMapping("/{requestId}")
-    public RequestService.RequestResponse detail(@AuthenticationPrincipal SessionUser user, @PathVariable long requestId) {
+    public RequestService.RequestResponse detail(@AuthenticationPrincipal SessionUser user, @PathVariable("requestId") long requestId) {
         return service.detail(user, requestId, null);
     }
 
     @GetMapping("/{requestId}/revisions/{revisionId}")
     public RequestService.RequestResponse revision(@AuthenticationPrincipal SessionUser user,
-                                                  @PathVariable long requestId, @PathVariable long revisionId) {
+                                                  @PathVariable("requestId") long requestId, @PathVariable("revisionId") long revisionId) {
         return service.detail(user, requestId, revisionId);
     }
 }

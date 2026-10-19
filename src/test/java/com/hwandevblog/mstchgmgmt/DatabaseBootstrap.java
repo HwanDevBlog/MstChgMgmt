@@ -38,6 +38,32 @@ public final class DatabaseBootstrap {
         return url;
     }
 
+    // 로컬 시연 계정만 이름과 비밀번호를 바꾸고 기존 요청의 소유자 ID·역할은 보존한다.
+    public static void configureLocalTester(String url) throws SQLException {
+        try (var connection = DriverManager.getConnection(url, "postgres", "postgres")) {
+            connection.setAutoCommit(false);
+            try (var query = connection.prepareStatement(
+                    "SELECT id,username,password_hash FROM catalog.app_user WHERE username IN ('requester_a','tester') FOR UPDATE");
+                 var result = query.executeQuery()) {
+                if (!result.next()) throw new SQLException("Local requester account is missing");
+                long id = result.getLong("id");
+                String username = result.getString("username");
+                String hash = result.getString("password_hash");
+                if (result.next()) throw new SQLException("Both requester_a and tester exist; refusing to merge accounts");
+                var encoder = new BCryptPasswordEncoder();
+                if (!username.equals("tester") || !encoder.matches("1", hash)) {
+                    try (var update = connection.prepareStatement(
+                            "UPDATE catalog.app_user SET username='tester',password_hash=? WHERE id=?")) {
+                        update.setString(1, encoder.encode("1"));
+                        update.setLong(2, id);
+                        update.executeUpdate();
+                    }
+                }
+                connection.commit();
+            }
+        }
+    }
+
     private static void seed(String url) throws SQLException {
         try (var connection = DriverManager.getConnection(url, "postgres", "postgres")) {
             connection.setAutoCommit(false);

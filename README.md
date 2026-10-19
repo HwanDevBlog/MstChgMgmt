@@ -179,11 +179,11 @@ DBeaver 연결 설정(애플리케이션 실행 중):
 - 로그인 사용자 조회: `http://127.0.0.1:18081/api/auth/me`
 - 기준정보 조회: `http://127.0.0.1:18081/api/equipment`
 
-시연 계정의 공통 비밀번호는 **`LocalDemo!2026`**입니다.
+로컬 요청자 로그인은 **`tester / 1`**입니다. 나머지 계정 비밀번호는 **`LocalDemo!2026`**입니다. 기존 requester_a 계정의 ID·역할·요청은 유지한 채 로그인 정보만 변경합니다. 자동 테스트용 계정은 별도로 유지합니다.
 
 | 계정 | 역할 |
 |---|---|
-| requester_a, requester_b | 요청자 |
+| tester, requester_b | 요청자 |
 | approver, approver_b | 승인자 |
 | viewer | 조회자 |
 | dual | 요청자 + 승인자 |
@@ -236,7 +236,7 @@ npm run test:e2e
 
 프론트엔드를 빌드한 뒤 프로젝트 루트에서 `.\scripts\dev.ps1 -Tasks test,bootJar`를 실행하면 정적 화면이 포함된 JAR을 생성합니다. 일반 JAR 실행에는 별도로 준비된 DB 연결 설정이 필요하며, Embedded PostgreSQL은 운영 JAR에 포함되지 않습니다.
 
-Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gradle-user-home`을 사용합니다. 이 PC의 Gradle Arguments와 JVM Arguments에는 `-Dorg.gradle.internal.instrumentation.agent=false`를 지정합니다. 의존성 변경 후 F5 → Gradle → Refresh Gradle Project를 실행하고, 직접 실행할 때는 테스트 소스의 `LocalApplication`을 Java Application으로 실행합니다.
+Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gradle-user-home`을 사용합니다. 이 PC의 Gradle Arguments와 JVM Arguments에는 `-Dorg.gradle.internal.instrumentation.agent=false`를 지정합니다. 의존성 변경 후 F5 → Gradle → Refresh Gradle Project를 실행하고, 이클립스에서는 프로젝트 루트의 `MstChgMgmt - localRun.launch`를 우클릭 → Run As → MstChgMgmt - localRun으로 실행합니다. 이 공유 실행 구성은 `LocalApplication`을 실행하며, PostgreSQL 도구 메시지용 `LC_ALL=C`·`LANG=C`와 UTF-8 콘솔을 지정합니다. 실행 구성의 Working directory는 프로젝트 루트로 지정합니다. 로컬 실행기는 `frontend/dist`를 직접 제공하므로 프론트엔드 빌드가 먼저 필요합니다. 이미 빌드한 뒤 서버 코드만 바꿨다면 F5로 새로고침하고 서버를 종료·재실행하면 됩니다.
 
 ## 주요 API
 
@@ -310,10 +310,14 @@ Eclipse에서는 Gradle Wrapper·Java 21·프로젝트별 Gradle user home `.gra
 | 실제 PostgreSQL 제출·불변성·롤백·동시 제출 API 테스트 | 12건 통과 |
 | 실제 PostgreSQL 승인·반려·철회·리비전·경합·롤백 API 테스트 | 13건 통과 |
 | 실제 PostgreSQL 종료·재시작 보존 테스트 | 1건 통과 |
-| 프론트엔드 UI·CSRF·bigint·업무 흐름·계정 전환 테스트 | 17건 통과 |
+| 로컬 실행 화면·정적 파일 제공·API 인증 유지 테스트 | 2건 통과 |
+| 로컬 시연 계정 변경·소유권 보존 테스트 | 1건 통과 |
+| 프론트엔드 UI·CSRF·bigint·업무 흐름·계정 전환·검증 결과 이동 테스트 | 18건 통과 |
 | 실제 서버에 연결한 Chrome E2E | 7건 통과 |
 
 소유권 검사 제거 실험에서는 타인 상세 조회가 `200`이 되어 `403`을 기대한 대표 API 테스트가 실패했습니다. 원본 복원 후 전체 서버 테스트가 다시 통과했습니다. 실제 제출·승인·반영·반려·철회·새 리비전 생성은 API와 브라우저에서 확인했습니다. 계정 전환 응답 가드를 제거하면 타인 요청 상세가 다시 나타나며 회귀 테스트가 실패했고, 원본 복원 후 프론트엔드 전체 테스트가 통과했습니다.
+
+2026-10-19 전체 UI 검수에서 로그인·기준정보·요청·검증·제출 검토·승인·반려·철회·반영 이력과 빈 목록을 데스크톱 1440px·모바일 390px로 확인했습니다. 실제 데이터 화면 11종과 GET 응답만 대체한 오류·빈 목록 2종을 총 26개 캡처로 확인했고, 표 헤더·본문 정렬과 페이지 가로 넘침·브라우저 실행 오류를 점검했습니다. 상세 선택·검증 완료 시 해당 영역으로 이동하며, 긴 목록은 내부 스크롤을 사용합니다.
 
 서버 테스트 보고서는 `build/reports/tests/test/index.html`, 브라우저 캡처는 `frontend/test-results/`에서 확인합니다. GitHub Actions는 main push와 main 대상 pull request에서 백엔드·프론트엔드를 각각 검증하도록 구성했습니다. 백엔드는 Java 21에서 PostgreSQL 통합 테스트를 포함한 전체 서버 테스트를 실행하고, 프론트엔드는 Node 24에서 npm ci·타입 검사·UI 테스트·빌드를 실행합니다. Chrome E2E와 재시작 시연은 로컬 검증이며 CI 실행에는 포함하지 않았습니다. 2026-10-15 커밋 `cae4afa`의 [Backend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508866)와 [Frontend CI](https://github.com/HwanDevBlog/MstChgMgmt/actions/runs/38705508783)가 모두 성공했습니다.
 

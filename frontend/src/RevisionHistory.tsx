@@ -14,8 +14,8 @@ export default function RevisionHistory({ request, currentRevisionId, onSelect }
     return () => { current = false; };
   }, [request.requestId, request.revisionId, request.state]);
   return <section className="card" aria-label="리비전 이력"><div className="card-heading"><h2>리비전 이력</h2><span className="count">{rows.length}건</span></div>
-    {error && <p className="error">{error}</p>}<div className="table-scroll"><table><thead><tr><th>리비전</th><th>상태</th><th>사유</th><th>보기</th></tr></thead>
-      <tbody>{rows.map(row => <tr key={row.revisionId}><td>{row.revisionNumber}{row.revisionId === currentRevisionId ? ' · 현재' : ''}</td><td><span className="badge">{names[row.state]}</span></td><td className="reason-cell">{row.reason || '미작성'}</td>
+    {error && <p className="error" role="alert">{error}</p>}<div className="table-scroll"><table className="revision-table" aria-label="리비전 목록"><colgroup><col style={{ width: '16%' }} /><col style={{ width: '18%' }} /><col style={{ width: '52%' }} /><col style={{ width: '14%' }} /></colgroup><thead><tr><th>리비전</th><th>상태</th><th>사유</th><th>보기</th></tr></thead>
+      <tbody>{rows.map(row => <tr key={row.revisionId}><td>{row.revisionNumber}{row.revisionId === currentRevisionId ? ' · 현재' : ''}</td><td><span className="badge" data-state={row.state}>{names[row.state]}</span></td><td className="reason-cell">{row.reason || '미작성'}</td>
         <td><button className="text-button" onClick={() => onSelect(row.revisionId)} aria-label={`리비전 ${row.revisionNumber} 보기`}>보기</button></td></tr>)}</tbody></table></div>
   </section>;
 }

@@ -26,27 +26,27 @@ public class RevisionWorkspaceController {
 
     @GetMapping("/workspace")
     public RevisionWorkspaceService.Workspace workspace(@AuthenticationPrincipal SessionUser user,
-                                                        @PathVariable long requestId, @PathVariable long revisionId) {
+                                                        @PathVariable("requestId") long requestId, @PathVariable("revisionId") long revisionId) {
         return service.get(user, requestId, revisionId);
     }
 
     @PostMapping(value = "/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public RevisionWorkspaceService.Workspace upload(@AuthenticationPrincipal SessionUser user,
-                                                     @PathVariable long requestId, @PathVariable long revisionId,
+                                                     @PathVariable("requestId") long requestId, @PathVariable("revisionId") long revisionId,
                                                      @RequestParam("file") MultipartFile file) throws IOException {
         return service.upload(user, requestId, revisionId, file);
     }
 
     @PostMapping("/validation")
     public RevisionWorkspaceService.Preview validate(@AuthenticationPrincipal SessionUser user,
-                                                     @PathVariable long requestId, @PathVariable long revisionId,
+                                                     @PathVariable("requestId") long requestId, @PathVariable("revisionId") long revisionId,
                                                      @jakarta.validation.Valid @RequestBody ValidateInput input) {
         return service.validate(user, requestId, revisionId, input.fileId());
     }
 
     @GetMapping("/file")
     public ResponseEntity<byte[]> original(@AuthenticationPrincipal SessionUser user,
-                                           @PathVariable long requestId, @PathVariable long revisionId) {
+                                           @PathVariable("requestId") long requestId, @PathVariable("revisionId") long revisionId) {
         var file = service.original(user, requestId, revisionId);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()

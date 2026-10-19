@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 const header = 'operation,equipment_code,name,category,daily_fee_krw,active\n';
 test('오류 수정부터 전후 비교와 저장 결과 복원까지 연결된다', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('아이디').fill('requester_a');
-  await page.getByLabel('비밀번호').fill('LocalDemo!2026');
+  await page.getByLabel('아이디').fill('tester');
+  await page.getByLabel('비밀번호').fill('1');
   await page.getByRole('button', { name: '로그인', exact: true }).click();
   await page.getByRole('button', { name: '변경 요청 작성', exact: true }).click();
   await page.getByLabel('변경 사유').fill(`CSV 검증 확인 ${Date.now()}`);

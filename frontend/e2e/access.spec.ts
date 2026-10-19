@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 test('로그인부터 본인 요청 생성과 로그아웃까지 연결된다', async ({ page }) => {
   const reason = `브라우저 연결 검증 ${Date.now()}`;
   await page.goto('/');
-  await page.getByLabel('아이디').fill('requester_a');
-  await page.getByLabel('비밀번호').fill('LocalDemo!2026');
+  await page.getByLabel('아이디').fill('tester');
+  await page.getByLabel('비밀번호').fill('1');
   await page.getByRole('button', { name: '로그인', exact: true }).click();
   await expect(page.getByRole('heading', { name: '기준정보 목록' })).toBeVisible();
   await expect(page.getByText('EQ-CAM100')).toBeVisible();
@@ -20,7 +20,7 @@ test('로그인부터 본인 요청 생성과 로그아웃까지 연결된다', 
   await expect(page.getByRole('region', { name: '변경 요청 상세' })).toContainText(reason);
   await page.screenshot({ path: 'test-results/requester-desktop.png', fullPage: true });
   await page.reload();
-  await expect(page.getByText('requester_a', { exact: true })).toBeVisible();
+  await expect(page.getByText('tester', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '내 변경 요청', exact: true }).click();
   await expect(page.getByRole('cell', { name: reason, exact: true })).toBeVisible();
   await page.getByRole('button', { name: '로그아웃' }).click();

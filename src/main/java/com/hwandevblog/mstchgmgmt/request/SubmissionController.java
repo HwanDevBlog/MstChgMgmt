@@ -20,20 +20,20 @@ public class SubmissionController {
     public record Input(@NotNull UUID fileId,@NotNull UUID validationId,@NotNull @Pattern(regexp="[0-9a-f]{64}") String contentHash) { }
     public record ReasonInput(String reason) { }
     @PostMapping("/reason")
-    public RequestService.RequestResponse reason(@AuthenticationPrincipal SessionUser user,@PathVariable long requestId,
-                                                 @PathVariable long revisionId,@RequestBody ReasonInput input) {
+    public RequestService.RequestResponse reason(@AuthenticationPrincipal SessionUser user,@PathVariable("requestId") long requestId,
+                                                 @PathVariable("revisionId") long revisionId,@RequestBody ReasonInput input) {
         return service.updateReason(user,requestId,revisionId,input.reason());
     }
     @GetMapping("/submission-preview")
-    public SubmissionService.Snapshot prepare(@AuthenticationPrincipal SessionUser user,@PathVariable long requestId,@PathVariable long revisionId) {
+    public SubmissionService.Snapshot prepare(@AuthenticationPrincipal SessionUser user,@PathVariable("requestId") long requestId,@PathVariable("revisionId") long revisionId) {
         return service.prepare(user,requestId,revisionId);
     }
     @PostMapping("/submission")
-    public SubmissionService.Snapshot submit(@AuthenticationPrincipal SessionUser user,@PathVariable long requestId,@PathVariable long revisionId,@Valid @RequestBody Input input) {
+    public SubmissionService.Snapshot submit(@AuthenticationPrincipal SessionUser user,@PathVariable("requestId") long requestId,@PathVariable("revisionId") long revisionId,@Valid @RequestBody Input input) {
         return service.submit(user,requestId,revisionId,new SubmissionService.SubmitInput(input.fileId(),input.validationId(),input.contentHash()));
     }
     @GetMapping("/submission")
-    public SubmissionService.Snapshot get(@AuthenticationPrincipal SessionUser user,@PathVariable long requestId,@PathVariable long revisionId) {
+    public SubmissionService.Snapshot get(@AuthenticationPrincipal SessionUser user,@PathVariable("requestId") long requestId,@PathVariable("revisionId") long revisionId) {
         return service.get(user,requestId,revisionId);
     }
 }

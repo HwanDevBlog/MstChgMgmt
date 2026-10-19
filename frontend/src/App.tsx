@@ -15,6 +15,7 @@ const pageTitles = { catalog: '기준정보 목록', requests: '내 변경 요�
 
 export default function App() {
   const sessionEpoch = useRef(0);
+  const detailRef = useRef<HTMLElement>(null);
   const renderEpoch = sessionEpoch.current;
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
@@ -33,6 +34,13 @@ export default function App() {
     // 목록 조회 전에 입력 폼이 잠깐 표시되었다가 다시 생성되는 것을 막는다.
     setLoading(true); setSelected(null); setNotice(''); setPage(next);
   }
+
+  // 긴 목록 아래에 숨은 상세를 찾지 않아도 선택한 리비전을 바로 확인하게 한다.
+  useEffect(() => {
+    if (!selected) return;
+    detailRef.current?.scrollIntoView?.({ block: 'start' });
+    detailRef.current?.focus({ preventScroll: true });
+  }, [selected?.requestId, selected?.revisionId]);
 
   function report(cause: unknown) {
     if (cause instanceof ApiError && cause.status === 401) {
@@ -160,7 +168,7 @@ export default function App() {
         {notice && page !== 'catalog' && <p className="notice" role="status">{notice}</p>}
         {loading ? <p role="status">목록을 불러오고 있습니다…</p> : page === 'catalog' ? <section className="card">
           <div className="card-heading"><h2>장비 카탈로그</h2><span className="count">{equipment.length}개 장비</span></div>
-          <div className="table-scroll"><table><thead><tr><th>장비 코드</th><th>장비명</th><th>분류</th><th className="numeric">일 대여료</th><th>상태</th><th className="numeric">버전</th></tr></thead>
+          <div className="table-scroll list-scroll"><table className="catalog-table" aria-label="장비 기준정보"><colgroup><col style={{ width: '18%' }} /><col style={{ width: '30%' }} /><col style={{ width: '14%' }} /><col style={{ width: '18%' }} /><col style={{ width: '12%' }} /><col style={{ width: '8%' }} /></colgroup><thead><tr><th>장비 코드</th><th>장비명</th><th>분류</th><th className="numeric">일 대여료</th><th>상태</th><th className="numeric">버전</th></tr></thead>
             <tbody>{equipment.map(row => <tr key={row.code}><td className="code">{row.code}</td><td>{row.name}</td><td>{categories[row.category] ?? row.category}</td>
               <td className="numeric">{formatFee(row.dailyFeeKrw)}</td><td><span className={row.active ? 'badge enabled' : 'badge'}>{row.active ? '사용' : '비활성'}</span></td><td className="numeric">{row.version}</td></tr>)}</tbody></table></div>
           {!equipment.length && <p className="empty">등록된 장비가 없습니다.</p>}
@@ -170,13 +178,13 @@ export default function App() {
               <div className="form-footer"><span className="muted">변경 내용을 검토하기 전에 요청과 사유를 임시 저장합니다.</span><button className="primary" disabled={busy}>요청 임시 저장</button></div></form>
           </section>}
           <section className="card"><div className="card-heading"><h2>{page === 'approvals' ? '승인 대기 목록' : page === 'history' ? '반영 완료 목록' : '내 요청 목록'}</h2><span className="count">{requests.length}건</span></div>
-            <div className="table-scroll"><table><thead><tr><th>요청 번호</th><th>리비전</th><th>상태</th><th>변경 사유</th><th>작성일</th><th>상세</th></tr></thead><tbody>{requests.map(row => <tr key={row.requestId}>
-              <td className="code">#{row.requestId}</td><td>{row.revisionNumber}</td><td><span className="badge">{states[row.state] ?? row.state}</span></td><td className="reason-cell">{row.reason || '미작성'}</td>
+            <div className="table-scroll list-scroll"><table className="request-table" aria-label="변경 요청 목록"><colgroup><col style={{ width: '10%' }} /><col style={{ width: '8%' }} /><col style={{ width: '13%' }} /><col style={{ width: '35%' }} /><col style={{ width: '20%' }} /><col style={{ width: '14%' }} /></colgroup><thead><tr><th>요청 번호</th><th>리비전</th><th>상태</th><th>변경 사유</th><th>작성일</th><th>상세</th></tr></thead><tbody>{requests.map(row => <tr key={row.requestId}>
+              <td className="code">#{row.requestId}</td><td>{row.revisionNumber}</td><td><span className="badge" data-state={row.state}>{states[row.state] ?? row.state}</span></td><td className="reason-cell">{row.reason || '미작성'}</td>
               <td>{new Date(row.createdAt).toLocaleDateString('ko-KR')}</td><td><button className="text-button" aria-label={`요청 ${row.requestId} 상세`} onClick={() => detail(row.requestId)} disabled={busy}>보기</button></td></tr>)}</tbody></table></div>
             {!requests.length && <p className="empty">{page === 'approvals' ? '승인 대기 요청이 없습니다.' : page === 'history' ? '반영 이력이 없습니다.' : '아직 작성한 요청이 없습니다.'}</p>}
           </section>
-          {selected && <><section className="card" aria-label="변경 요청 상세"><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge">{states[selected.state] ?? selected.state}</span></div>
-            <dl className="detail-grid"><dt>현재 리비전</dt><dd>{selected.revisionNumber}</dd><dt>변경 사유</dt><dd>{selected.reason || '미작성'}</dd>
+          {selected && <><section className="card request-detail" aria-label="변경 요청 상세" ref={detailRef} tabIndex={-1}><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge" data-state={selected.state}>{states[selected.state] ?? selected.state}</span></div>
+            <dl className="detail-grid"><dt>리비전</dt><dd>{selected.revisionNumber}</dd><dt>변경 사유</dt><dd>{selected.reason || '미작성'}</dd>
               <dt>작성일</dt><dd>{new Date(selected.createdAt).toLocaleString('ko-KR')}</dd></dl></section>
             {selected.state === 'DRAFT' && selected.revisionId === currentRevisionId && selected.requesterId === user.id && <RevisionWorkspace
               key={selected.revisionId} request={selected} onFailure={reportForSession} onUpdated={updatedRequest} />}

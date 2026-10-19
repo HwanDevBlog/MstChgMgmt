@@ -1,7 +1,7 @@
 import { expect,test } from '@playwright/test';
 
 test('검토 묶음 충돌을 알리고 다시 확인한 내용만 고정 제출한다',async({page})=>{
- await page.goto('/');await page.getByLabel('아이디').fill('requester_a');await page.getByLabel('비밀번호').fill('LocalDemo!2026');
+ await page.goto('/');await page.getByLabel('아이디').fill('tester');await page.getByLabel('비밀번호').fill('1');
  await page.getByRole('button',{name:'로그인',exact:true}).click();await page.getByRole('button',{name:'변경 요청 작성',exact:true}).click();
  const created=page.waitForResponse(r=>r.url().endsWith('/api/requests')&&r.request().method()==='POST');
  await page.getByRole('button',{name:'요청 임시 저장'}).click();const request=await(await created).json();
