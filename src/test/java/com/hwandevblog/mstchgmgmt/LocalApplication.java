@@ -31,7 +31,7 @@ public final class LocalApplication {
                 .setServerConfig("listen_addresses", "127.0.0.1")
                 .setServerConfig("fsync", "on").start();
         var url = DatabaseBootstrap.prepare(postgres);
-        DatabaseBootstrap.configureLocalTester(url);
+        DatabaseBootstrap.configureLocalAccounts(url);
         System.setProperty("spring.datasource.url", url);
         System.setProperty("spring.datasource.username", "mcr_app");
         System.setProperty("spring.datasource.password", DatabaseBootstrap.APP_PASSWORD);

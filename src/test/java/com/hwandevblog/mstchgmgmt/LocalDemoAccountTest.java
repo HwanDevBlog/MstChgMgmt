@@ -16,19 +16,54 @@ class LocalDemoAccountTest {
         try (var postgres = EmbeddedPostgres.builder().setLocaleConfig("lc-messages", "C").start()) {
             String url = DatabaseBootstrap.prepare(postgres);
             long owner;
+            long approver;
             try (var connection = DriverManager.getConnection(url, "postgres", "postgres");
                  var sql = connection.createStatement()) {
                 try (var row = sql.executeQuery("SELECT id FROM catalog.app_user WHERE username='requester_a'")) {
                     row.next(); owner = row.getLong(1);
                 }
+                try (var row = sql.executeQuery("SELECT id FROM catalog.app_user WHERE username='approver'")) {
+                    row.next(); approver = row.getLong(1);
+                }
                 sql.execute("INSERT INTO catalog.change_request(requester_id,created_at) VALUES (" + owner + ",now())");
             }
-            DatabaseBootstrap.configureLocalTester(url);
+            DatabaseBootstrap.configureLocalAccounts(url);
             String hash = testerHash(url, owner);
             assertThat(new BCryptPasswordEncoder().matches("1", hash)).isTrue();
             assertThat(hash).isNotEqualTo("1");
-            DatabaseBootstrap.configureLocalTester(url);
+            DatabaseBootstrap.configureLocalAccounts(url);
             assertThat(testerHash(url, owner)).isEqualTo(hash);
+            try (var connection = DriverManager.getConnection(url, "postgres", "postgres"); var sql = connection.createStatement()) {
+                try (var row = sql.executeQuery("SELECT username FROM catalog.app_user WHERE active ORDER BY username")) {
+                    var names = new java.util.ArrayList<String>();
+                    while (row.next()) names.add(row.getString(1));
+                    assertThat(names).containsExactly("admin", "tester");
+                }
+                try (var row = sql.executeQuery("SELECT u.id,u.password_hash,r.role FROM catalog.app_user u JOIN catalog.user_role r ON r.user_id=u.id WHERE username='admin'")) {
+                    assertThat(row.next()).isTrue();
+                    assertThat(row.getLong("id")).isEqualTo(approver);
+                    assertThat(row.getString("role")).isEqualTo("APPROVER");
+                    assertThat(new BCryptPasswordEncoder().matches("1", row.getString("password_hash"))).isTrue();
+                }
+                try (var row = sql.executeQuery("SELECT count(*) FROM catalog.app_user")) {
+                    row.next(); assertThat(row.getInt(1)).isEqualTo(7);
+                }
+            }
+        }
+    }
+
+    @Test
+    void refusesDuplicateAccountWithoutPartiallyRenamingRequester() throws Exception {
+        try (var postgres = EmbeddedPostgres.builder().setLocaleConfig("lc-messages", "C").start()) {
+            String url = DatabaseBootstrap.prepare(postgres);
+            try (var connection = DriverManager.getConnection(url, "postgres", "postgres"); var sql = connection.createStatement()) {
+                sql.execute("INSERT INTO catalog.app_user(username,password_hash,active) SELECT 'admin',password_hash,true FROM catalog.app_user WHERE username='approver'");
+                assertThatThrownBy(() -> DatabaseBootstrap.configureLocalAccounts(url))
+                        .isInstanceOf(java.sql.SQLException.class).hasMessageContaining("Duplicate local accounts");
+                try (var row = sql.executeQuery("SELECT username FROM catalog.app_user WHERE username IN ('requester_a','tester')")) {
+                    assertThat(row.next()).isTrue(); assertThat(row.getString(1)).isEqualTo("requester_a");
+                }
+            }
         }
     }
 

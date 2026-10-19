@@ -1,9 +1,9 @@
-# 작업 인계 — 전체 UI 일괄 개선·검수 완료 (2026-10-19)
+# 작업 인계 — 로컬 요청자·승인자 두 계정 정리 완료 (2026-10-19)
 
 ## 확정된 작업 경로·상태
 
 - 프로젝트: `C:\toyProject\workspace\MstChgMgmt`
-- 로컬 Git 브랜치: `main`. 최근 커밋 `5b3769f`(README CI 배지 및 검증 결과 반영), 원격 https://github.com/HwanDevBlog/MstChgMgmt.git. 이 커밋의 push·두 CI 성공은 앞선 턴에서 확인했다. 이후 Eclipse·테스트 계정·전체 UI 개선은 미커밋이다.
+- 로컬 Git 브랜치: `main`. 최근 커밋 `09b8a34`(이클립스 실행 오류 수정 및 테스트 계정과 화면 UI 개선)의 push·두 CI 성공을 앞선 턴에서 확인했다. 이후 로컬 tester/admin 두 계정 정리 9개 파일은 미커밋이다.
 - 1단계 완료: 독립 CSV 규칙, 권한표, 상태 전이, 구현과 단위 테스트.
 - 2단계 완료: 세션 로그인·CSRF, PostgreSQL/Flyway, 조회·본인 임시 요청 생성과 API 소유권 통제, React 화면. 전체 MVP는 미완료.
 - 3단계 완료: CSV 업로드·원본 보존·DB 존재 검증·전후 비교·기준정보 변경 감지.
@@ -93,13 +93,12 @@ CSV 업로드·원본 보존·DB 존재 검증·전후 비교·제출본 고정�
 
 ## 다음 작업
 
-**화면 확인 후 일괄 변경 커밋·CI 확인**을 같은 채팅에서 이어간다.
-
-1. 사용자 브라우저에서 Ctrl+F5 후 개선 화면을 확인한다. 서버 재시작은 프론트 변경에 필요 없다. 사용자 요청 #30은 DRAFT·catalog-change.csv 검증 완료 상태이며 아직 제출하지 않았다.
-2. Eclipse·계정·UI 누적 변경 24개를 사용자 직접 커밋한다. 기존 gradlew.bat 줄바꿈 변경은 제외한다.
-3. 커밋 완료 통보 시 로컬 HEAD와 GitHub main, 해당 커밋의 Backend CI·Frontend CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
-4. 이후 사용자의 요청 #30 제출→승인→조회 시연을 이어간다. 별도 신규 기능은 임의로 추가하지 않는다.
-
+**admin 로그인·요청 #30 승인 시연과 계정 변경 커밋 확인**을 같은 채팅에서 이어간다.
++
++1. 현재 서버에는 tester/1·admin/1만 로그인 가능하도록 반영했다. 사용자가 요청 #30을 admin으로 승인했고 APPLIED·실제 기준정보·반영 이력을 확인했다. 현재 보기 스크롤 수정도 반영되어 Ctrl+F5 후 확인한다.
++2. 계정 정리와 보기 스크롤 수정 11개 파일을 사용자 직접 커밋한다. 기존 gradlew.bat 줄바꿈 변경은 제외한다. 통합 커밋 메시지는 로컬 계정 정리 및 상세 보기 스크롤 수정.
++3. 커밋 완료 통보 시 로컬 HEAD와 GitHub main, 해당 커밋의 두 CI 결과를 확인한다. 사용자 요청 없이 커밋·push하지 않는다.
++
 ## 작업 경로 이동 — 2026-10-15
 
 사용자 요청으로 프로젝트 전체를 `C:\toyProject\workspace\MstChgMgmt`로 이동했다.
@@ -375,3 +374,23 @@ Eclipse F5 → Gradle Refresh로 새 의존성을 반영하고 Git Staging에서
 - 사용자 요청 #30은 조회·제출 미리보기만 수행해 DRAFT·정상 CSV 검증 결과를 유지했다. E2E는 별도 신규 요청·장비에 시연 이력을 남겼고 초기 3개 장비 값은 유지했다. 이번 UI 작업에는 DB 마이그레이션·서버 권한·승인 정책 변경이 없다.
 - 커밋 대상 24개(기존 gradlew.bat 제외): 문서 README.md·docs/DEMO.md·docs/DESIGN.md·docs/HANDOFF.md 4개, 공유 launch 1개, frontend/e2e 4개, frontend/src 위 7개, Java RequestController·RevisionWorkspaceController·SubmissionController·DecisionController·DatabaseBootstrap·LocalApplication·LocalDemoAccountTest·LocalFrontendTest 8개.
 - 통합 커밋 메시지: 이클립스 실행 오류 수정 및 테스트 계정과 화면 UI 개선.
+
+## 로컬 두 계정 정리 완료 — 2026-10-19
+
+- 사용자 확정: 요청자 tester/1 하나, 관리(승인) admin/1 하나만 로그인 허용. tester ID=1·REQUESTER, admin ID=3·APPROVER. 기존 이름 requester_a·approver는 각각 변경했고 requester_b·approver_b·viewer·dual·inactive는 비활성 상태다. 기존 사용자 행과 역할은 과거 참조를 위해 보존했다.
+- DatabaseBootstrap.configureLocalAccounts가 두 계정 이름·비밀번호·활성을 정리하고 나머지를 비활성화한다. LocalApplication의 기존 configureLocalTester 호출을 대체했다. 기본 테스트 seed는 변경하지 않아 다중 요청자·승인자·조회자·복수 역할 API 테스트는 별도 DB에서 유지한다.
+- 실제 시연 DB 적용 전후 요청·제출본·결정·장비 변경 이력·사용자 행 수, 요청 #30 소유자와 제출 내용 해시가 같음을 확인했다. 요청 #30은 승인 대기 그대로이며 승인/반려하지 않았다. 기존 영수증의 과거 사용자명 텍스트는 재작성하지 않는다.
+- 실제 HTTP: tester/1·admin/1 로그인 204, requester_a·approver·requester_b·approver_b·viewer·dual·inactive 로그인 401. 변경 전 로그인한 viewer 세션도 변경 후 me 401을 확인했다.
+- LocalDemoAccountTest 최신 2건 통과: 두 활성 계정·ID·요청 소유권·APPROVER 역할·해시 보존과 반복 적용, 중복 admin 계정 시 부분 변경 롤백. 전체 서버 테스트는 이번 로컬 fixture 변경에서 반복하지 않았다.
+- Chrome E2E 7건 모두 통과. access.spec.ts는 admin의 DRAFT 상세 403·요청 생성 403을 검사하고, zz-workflow.spec.ts는 tester/admin만으로 제출·승인·새 세션 이력·반려·새 리비전·철회·계정 전환 지연 응답 폐기를 확인한다. 사용자 요청 #30 대신 새 QA 요청·장비를 사용했다.
+- 변경 파일 9개: src/test/java/com/hwandevblog/mstchgmgmt/DatabaseBootstrap.java·LocalApplication.java·LocalDemoAccountTest.java, frontend/e2e/access.spec.ts·zz-workflow.spec.ts, README.md·docs/DEMO.md·docs/DESIGN.md·docs/HANDOFF.md. 기존 gradlew.bat은 제외한다.
+- 커밋 메시지: 로컬 요청자 및 승인자 계정 단순화. 현재 서버에도 적용했으므로 로그아웃 후 admin/1로 로그인하면 된다. 다음 Eclipse 실행 전 F5로 소스를 반영한다.
+
+## 상세 보기 하단 이동 오류 수정 완료 — 2026-10-19
+
+- 요청 #30 실제 재현: 최초 상세·로딩 완료·같은 리비전 재선택 모두 제목 y=-1315px. ID 변경 때만 이동하던 로직과 비동기 렌더링의 브라우저 자동 스크롤 보정이 겹쳤다.
+- App.tsx: 상세 묶음 wrapper, detailVisit으로 같은 ID 재선택 감지, useLayoutEffect에서 제목 이동·포커스. styles.css: 최소 뷰포트 높이 확보와 앱 내부 scroll anchoring 차단. 중간 수정의 최초 이동 오류를 새 위치 E2E가 실제로 실패시켜 검출했다.
+- 최종 실제 요청 #30: 데스크톱 1440x950의 최초·로딩 완료·동일 리비전 재선택 제목 y=40.89px, 모바일 390x844의 세 경우 y=37.69px. 사용자 요청은 조회만 했고 APPLIED와 승인 이력은 유지했다.
+- 프론트엔드 전체 18건·타입 검사·빌드 통과. zz-workflow.spec.ts에 최초 열기·같은 리비전·같은 요청 보기의 제목 y=0~120px 검증을 추가하고 관련 Chrome 업무 3건을 최종 통과했다. 서버 전체는 UI 수정이라 반복하지 않았다.
+- 이번 UI 파일은 frontend/src/App.tsx·styles.css, frontend/e2e/zz-workflow.spec.ts. 앞선 두 계정 정리와 합쳐 커밋 대상 11개(gradlew.bat 제외): 문서 4개, Java 3개, E2E 2개, App.tsx·styles.css 2개.
+- 통합 커밋 메시지: 로컬 계정 정리 및 상세 보기 스크롤 수정. 다음 확인: Ctrl+F5 → 반영 이력 #30 보기 → 요청 #30 상세 제목이 화면 위쪽에 보이는지 확인. 활성 계정은 tester/1·admin/1이다.

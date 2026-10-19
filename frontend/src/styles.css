@@ -29,7 +29,7 @@ textarea { resize: vertical; min-height: 100px; font-weight: 400; }
 .login-panel label { margin-top: 23px; }
 .login-panel .primary { width: 100%; margin-top: 26px; height: 46px; }
 .login-help { text-align: center; font-size: 11px; color: var(--muted); margin: 20px 0 0; line-height: 1.7; }
-.app-layout { min-height: 100vh; display: flex; }
+.app-layout { min-height: 100vh; display: flex; overflow-anchor: none; }
 .sidebar { width: 205px; flex-shrink: 0; padding: 25px 14px; background: white; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
 .sidebar .wordmark { font-size: 15px; gap: 7px; }
 .sidebar-caption { color: var(--muted); font-size: 11px; margin: 11px 0 0 36px; }
@@ -200,3 +200,6 @@ summary { cursor: pointer; color: var(--accent); font-size: 12px; }
   .submission-check { padding: 14px 0; }
 }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+/* 비동기 상세가 짧은 로딩 화면에서 늘어나도 제목을 상단에 정렬할 공간을 유지한다. */
+.request-selection { display: flow-root; min-height: 100vh; overflow-anchor: none; }

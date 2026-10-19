@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import RevisionWorkspace from './RevisionWorkspace';
 import SubmissionPanel from './SubmissionPanel';
 import RevisionHistory from './RevisionHistory';
@@ -24,6 +24,7 @@ export default function App() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [selected, setSelected] = useState<ChangeRequest | null>(null);
+  const [detailVisit, setDetailVisit] = useState(0);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,12 +36,12 @@ export default function App() {
     setLoading(true); setSelected(null); setNotice(''); setPage(next);
   }
 
-  // 긴 목록 아래에 숨은 상세를 찾지 않아도 선택한 리비전을 바로 확인하게 한다.
-  useEffect(() => {
+  // 같은 항목을 다시 열어도 상세 제목으로 이동하며 브라우저가 그리기 전에 위치를 맞춘다.
+  useLayoutEffect(() => {
     if (!selected) return;
     detailRef.current?.scrollIntoView?.({ block: 'start' });
     detailRef.current?.focus({ preventScroll: true });
-  }, [selected?.requestId, selected?.revisionId]);
+  }, [selected?.requestId, selected?.revisionId, detailVisit]);
 
   function report(cause: unknown) {
     if (cause instanceof ApiError && cause.status === 401) {
@@ -120,7 +121,7 @@ export default function App() {
 
   async function detail(id: number) {
     setBusy(true); setError('');
-    try { setSelected(await api.detail(id)); }
+    try { setSelected(await api.detail(id)); setDetailVisit(value => value + 1); }
     catch (cause) { report(cause); }
     finally { setBusy(false); }
   }
@@ -128,7 +129,7 @@ export default function App() {
   async function viewRevision(id: number) {
     if (!selected) return;
     setBusy(true); setError('');
-    try { setSelected(await api.revision(selected.requestId, id)); } catch (cause) { report(cause); } finally { setBusy(false); }
+    try { setSelected(await api.revision(selected.requestId, id)); setDetailVisit(value => value + 1); } catch (cause) { report(cause); } finally { setBusy(false); }
   }
   const currentRevisionId = selected ? requests.find(row => row.requestId === selected.requestId)?.revisionId ?? selected.revisionId : 0;
 
@@ -183,14 +184,14 @@ export default function App() {
               <td>{new Date(row.createdAt).toLocaleDateString('ko-KR')}</td><td><button className="text-button" aria-label={`요청 ${row.requestId} 상세`} onClick={() => detail(row.requestId)} disabled={busy}>보기</button></td></tr>)}</tbody></table></div>
             {!requests.length && <p className="empty">{page === 'approvals' ? '승인 대기 요청이 없습니다.' : page === 'history' ? '반영 이력이 없습니다.' : '아직 작성한 요청이 없습니다.'}</p>}
           </section>
-          {selected && <><section className="card request-detail" aria-label="변경 요청 상세" ref={detailRef} tabIndex={-1}><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge" data-state={selected.state}>{states[selected.state] ?? selected.state}</span></div>
+          {selected && <div className="request-selection"><section className="card request-detail" aria-label="변경 요청 상세" ref={detailRef} tabIndex={-1}><div className="card-heading"><h2>요청 #{selected.requestId} 상세</h2><span className="badge" data-state={selected.state}>{states[selected.state] ?? selected.state}</span></div>
             <dl className="detail-grid"><dt>리비전</dt><dd>{selected.revisionNumber}</dd><dt>변경 사유</dt><dd>{selected.reason || '미작성'}</dd>
               <dt>작성일</dt><dd>{new Date(selected.createdAt).toLocaleString('ko-KR')}</dd></dl></section>
             {selected.state === 'DRAFT' && selected.revisionId === currentRevisionId && selected.requesterId === user.id && <RevisionWorkspace
               key={selected.revisionId} request={selected} onFailure={reportForSession} onUpdated={updatedRequest} />}
             {['SUBMITTED', 'APPLIED', 'REJECTED', 'WITHDRAWN'].includes(selected.state) && <SubmissionPanel key={`submitted-${selected.revisionId}`} request={selected} user={user} isCurrent={selected.revisionId === currentRevisionId} onUpdated={updatedRequest} onFailure={reportForSession} />}
             {(selected.requesterId === user.id || ['SUBMITTED', 'APPLIED'].includes(selected.state)) && <RevisionHistory request={selected} currentRevisionId={currentRevisionId} onSelect={viewRevision} />}
-          </>}
+          </div>}
         </>}
       </main></div>
   </div>;

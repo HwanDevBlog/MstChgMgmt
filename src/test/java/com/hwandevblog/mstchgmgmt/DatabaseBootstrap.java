@@ -38,28 +38,45 @@ public final class DatabaseBootstrap {
         return url;
     }
 
-    // 로컬 시연 계정만 이름과 비밀번호를 바꾸고 기존 요청의 소유자 ID·역할은 보존한다.
-    public static void configureLocalTester(String url) throws SQLException {
+    // 로컬 로그인 계정만 정리하고 과거 요청·처리 이력이 참조하는 사용자 행은 보존한다.
+    public static void configureLocalAccounts(String url) throws SQLException {
         try (var connection = DriverManager.getConnection(url, "postgres", "postgres")) {
             connection.setAutoCommit(false);
-            try (var query = connection.prepareStatement(
-                    "SELECT id,username,password_hash FROM catalog.app_user WHERE username IN ('requester_a','tester') FOR UPDATE");
-                 var result = query.executeQuery()) {
-                if (!result.next()) throw new SQLException("Local requester account is missing");
+            long requester = normalizeLocalAccount(connection, "requester_a", "tester");
+            long approver = normalizeLocalAccount(connection, "approver", "admin");
+            try (var disable = connection.prepareStatement(
+                    "UPDATE catalog.app_user SET active=false WHERE id<>? AND id<>? AND active")) {
+                disable.setLong(1, requester);
+                disable.setLong(2, approver);
+                disable.executeUpdate();
+            }
+            connection.commit();
+        }
+    }
+
+    private static long normalizeLocalAccount(Connection connection, String previous, String username) throws SQLException {
+        try (var query = connection.prepareStatement(
+                "SELECT id,username,password_hash,active FROM catalog.app_user WHERE username IN (?,?) FOR UPDATE")) {
+            query.setString(1, previous);
+            query.setString(2, username);
+            try (var result = query.executeQuery()) {
+                if (!result.next()) throw new SQLException("Local account is missing: " + username);
                 long id = result.getLong("id");
-                String username = result.getString("username");
+                String current = result.getString("username");
                 String hash = result.getString("password_hash");
-                if (result.next()) throw new SQLException("Both requester_a and tester exist; refusing to merge accounts");
+                boolean active = result.getBoolean("active");
+                if (result.next()) throw new SQLException("Duplicate local accounts; refusing to merge: " + username);
                 var encoder = new BCryptPasswordEncoder();
-                if (!username.equals("tester") || !encoder.matches("1", hash)) {
+                if (!current.equals(username) || !active || !encoder.matches("1", hash)) {
                     try (var update = connection.prepareStatement(
-                            "UPDATE catalog.app_user SET username='tester',password_hash=? WHERE id=?")) {
-                        update.setString(1, encoder.encode("1"));
-                        update.setLong(2, id);
+                            "UPDATE catalog.app_user SET username=?,password_hash=?,active=true WHERE id=?")) {
+                        update.setString(1, username);
+                        update.setString(2, encoder.encode("1"));
+                        update.setLong(3, id);
                         update.executeUpdate();
                     }
                 }
-                connection.commit();
+                return id;
             }
         }
     }
